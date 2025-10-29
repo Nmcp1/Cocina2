@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'test_game_screen.dart'; // <-- Importa la pantalla del juego
+import '/pages/welcome_screen.dart';
+import '/pages/login_screen.dart';
+import '/pages/register_screen.dart';
+import '/pages/main_menu_screen.dart';
+import '/pages/chef_view_on.dart';
 
 void main() {
   runApp(const MainApp());
@@ -11,30 +15,16 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Juego de Cocina',
-      home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Juego de Cocina 👨‍🍳')),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TestGameScreen()),
-            );
-          },
-          child: const Text('Iniciar juego'),
-        ),
-      ),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const WelcomeScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/menu': (context) => const MainMenuScreen(),
+        '/chef': (context) => const ChefViewOn(),
+      },
     );
   }
 }
