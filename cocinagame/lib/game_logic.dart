@@ -6,20 +6,20 @@ import 'package:http/http.dart' as http;
 /// =============================
 /// Enums y modelos base
 /// =============================
-enum PlayerType { chef, cook }
-enum IngredientColor { red, blue, green, yellow, purple, neutral, black }
 
+enum IngredientColor { red, blue, green, yellow, purple, neutral, black }
 enum Difficulty { easy, medium, hard }
 
 enum SelectionResult {
-  correct,              // Color requerido y aún faltaba de ese color
-  exceededRecipeColor,  // Color es de receta pero la cuota de ese color ya estaba completa -> arruina receta
-  neutral,              // Neutro -> se pierde el turno
-  wrongColor,           // Color NO pertenece a la receta -> arruina receta
-  black,                // Negro -> fin de juego
-  alreadySelected,      // Ya estaba revelada
+  correct,
+  exceededRecipeColor,
+  neutral,
+  wrongColor,
+  black,
+  alreadySelected,
 }
 
+/// Ingrediente en el tablero
 class Ingredient {
   final String name;
   final IngredientColor color;
@@ -28,23 +28,17 @@ class Ingredient {
   Ingredient(this.name, this.color);
 }
 
-/// Representa la “receta”: cantidades requeridas por color.
-/// No incluye negro ni neutral.
+/// Representa la receta actual
 class Recipe {
-  final Map<IngredientColor, int> required; // color -> cantidad requerida
+  final Map<IngredientColor, int> required;
 
   Recipe(this.required) {
-    // Sanitiza: quita colores con 0
+    // Limpia entradas inválidas
     required.removeWhere((_, v) => v <= 0);
   }
 
   bool get isCompleted => required.values.every((v) => v == 0);
 
-  /// Intenta aplicar la selección de un ingrediente de cierto color.
-  /// Devuelve:
-  /// - SelectionResult.correct si ese color aún faltaba y se descuenta.
-  /// - SelectionResult.exceededRecipeColor si el color pertenece a la receta pero ya estaba en 0.
-  /// - SelectionResult.wrongColor si el color no pertenece a la receta.
   SelectionResult applySelectionColor(IngredientColor color) {
     if (color == IngredientColor.black) return SelectionResult.black;
     if (color == IngredientColor.neutral) return SelectionResult.neutral;
@@ -54,77 +48,63 @@ class Recipe {
         required[color] = required[color]! - 1;
         return SelectionResult.correct;
       } else {
-        // El color pertenece a la receta, pero ya está completo -> excedente -> arruina receta
         return SelectionResult.exceededRecipeColor;
       }
     }
-    // No está en la receta -> arruina receta
     return SelectionResult.wrongColor;
   }
 }
 
+/// Pista del chef
 class Clue {
   final String word;
-  final int quantity; // número de intentos máximos del Cocinero en este turno
+  final int quantity; // reservado por si luego limitas selecciones
 
   Clue(this.word, this.quantity) : assert(quantity >= 1);
 }
 
-/// Palabras por defecto (fallback)
+/// Palabras fallback
 enum Palabras {
-  manzana,
-  bicicleta,
-  elefante,
-  montana,
-  guitarra,
-  ventana,
-  libro,
-  reloj,
-  playa,
-  estrella,
-  nube,
-  perro,
-  balon,
-  arbol,
-  ciudad,
-  fuego,
-  luna,
-  camisa,
-  flor,
-  rio,
-  tren,
-  zapato,
-  mariposa,
-  carro,
+  manzana, bicicleta, elefante, montana, guitarra, ventana, libro, reloj,
+  playa, estrella, nube, perro, balon, arbol, ciudad, fuego, luna, camisa,
+  flor, rio, tren, zapato, mariposa, carro
 }
 
 /// =============================
-/// WordBank: sin repeticiones + API opcional
+/// WordBank con recarga automática
 /// =============================
 class WordBank {
   WordBank._();
   static final WordBank instance = WordBank._();
 
-  /// Conjunto global de palabras ya usadas (no se repiten en todo el juego).
-  final Set<String> _used = <String>{};
-
-  /// Pool actual de palabras candidatas (sin usadas).
-  final List<String> _pool = <String>[];
-
+  final Set<String> _used = {};
+  final List<String> _pool = [];
+  final List<String> _base = []; // snapshot de fuente (API o enum)
   bool _fetchedOnce = false;
   int _fallbackCounter = 1;
   final Random _rnd = Random();
 
-  /// Llenar el pool desde el enum por defecto (sin repetir ya usadas).
-  void _fillFromEnumIfNeeded() {
-    if (_pool.isNotEmpty) return;
-    final base = Palabras.values.map((e) => e.name).where((w) => !_used.contains(w)).toList();
-    base.shuffle(_rnd);
-    _pool.addAll(base);
+  void _ensureBase() {
+    if (_base.isEmpty) {
+      final base = Palabras.values.map((e) => e.name).toList();
+      base.shuffle(_rnd);
+      _base.addAll(base);
+    }
   }
 
-  /// Intenta una sola vez traer palabras desde API local.
-  /// Si el endpoint existe y devuelve lista no vacía, reemplaza el pool base.
+  void _refillPool() {
+    _ensureBase();
+    // Si ya se usaron todas, permite reciclar limpiando usados
+    if (_used.length >= _base.length) {
+      _used.clear();
+    }
+    final candidates = _base.where((w) => !_used.contains(w)).toList()
+      ..shuffle(_rnd);
+    _pool
+      ..clear()
+      ..addAll(candidates.isEmpty ? _base : candidates);
+  }
+
   Future<void> tryFetchOnce() async {
     if (_fetchedOnce) return;
     _fetchedOnce = true;
@@ -143,69 +123,48 @@ class WordBank {
             if (words.isNotEmpty) return words;
           }
         }
-      } catch (_) {
-        // Silencioso: si falla, seguimos con fallback.
-      }
+      } catch (_) {}
       return null;
     }
 
-    // Prueba /api/words y luego /words
-    final candidates =
-        await _tryEndpoint('http://localhost:8000/api/words') ??
+    final api = await _tryEndpoint('http://localhost:8000/api/words') ??
         await _tryEndpoint('http://localhost:8000/words');
 
-    if (candidates != null && candidates.isNotEmpty) {
-      // Reemplaza el pool con palabras únicas que no estén usadas
-      final unique = <String>{};
-      final filtered = <String>[];
-      for (final w in candidates) {
-        final lw = w.trim();
-        if (lw.isEmpty) continue;
-        final key = lw.toLowerCase();
-        if (!unique.contains(key) && !_used.contains(lw)) {
-          unique.add(key);
-          filtered.add(lw);
-        }
+    if (api != null && api.isNotEmpty) {
+      final seen = <String>{};
+      final normalized = <String>[];
+      for (final w in api) {
+        final k = w.toLowerCase();
+        if (seen.add(k)) normalized.add(w);
       }
-      if (filtered.isNotEmpty) {
-        _pool
-          ..clear()
-          ..addAll(filtered..shuffle(_rnd));
-      }
+      normalized.shuffle(_rnd);
+      _base
+        ..clear()
+        ..addAll(normalized);
+    } else {
+      _ensureBase(); // cae al enum local
     }
 
-    // Si la API no trajo nada, dejamos que el enum llene el pool on-demand
+    _refillPool();
   }
 
-  /// Entrega la siguiente palabra **única**.
-  /// Si se agotan, genera una palabra nueva única (`ingrediente_#`).
   String nextWord() {
     if (_pool.isEmpty) {
-      _fillFromEnumIfNeeded();
+      _refillPool();
     }
-    // Busca una palabra que no esté usada
     while (_pool.isNotEmpty) {
       final w = _pool.removeAt(0);
-      if (_used.add(w)) {
-        return w;
-      }
+      if (_used.add(w)) return w; // retorna primera no usada
     }
-    // Si llegamos aquí, no hay más en enum ni API: generar únicas sintéticas.
-    String gen() => 'ingrediente_${_fallbackCounter++}';
-    String candidate = gen();
-    while (_used.contains(candidate)) {
-      candidate = gen();
-    }
-    _used.add(candidate);
-    return candidate;
+    // Defensa final (debería usarse raramente)
+    return 'ingrediente_${_fallbackCounter++}';
   }
 
-  /// Resetea el banco (por si reinicias juego).
   void reset() {
     _used.clear();
     _pool.clear();
-    _fetchedOnce = false;
     _fallbackCounter = 1;
+    // _base se mantiene (snapshot de API/enum); _pool se repuebla al pedir palabras
   }
 }
 
@@ -214,21 +173,17 @@ class WordBank {
 /// =============================
 class Round {
   final int number;
-  final List<Ingredient> board; // 18 ingredientes
+  final List<Ingredient> board;
   final Difficulty difficulty;
 
-  // Estado de turno
   bool isChefTurn = true;
   bool finished = false;
 
-  // Receta dinámica de la ronda (puede cambiar cuando se “arruina”)
   late Recipe recipe;
-
-  // Pista activa y selecciones disponibles en este turno
   Clue? activeClue;
-  int picksRemaining = 0;
 
   final Random _rnd;
+  final List<SelectionResult> _currentSelections = [];
 
   Round({
     required this.number,
@@ -239,175 +194,104 @@ class Round {
     recipe = _generateRecipeForBoard();
   }
 
-  /// Chef entrega pista (palabra + número)
   void giveClue(Clue clue) {
     if (finished) return;
     activeClue = clue;
-    picksRemaining = clue.quantity;
-    isChefTurn = false; // pasa el turno al Cocinero
+    isChefTurn = false; // turno del cocinero
+    _currentSelections.clear();
   }
 
-  /// Cocinero elige carta por índice del tablero (0..17)
-  /// Se aplica la regla de color; retorna el resultado para que el UI reaccione.
   SelectionResult selectCard(int index) {
-    if (finished) return SelectionResult.alreadySelected;
-    if (isChefTurn) return SelectionResult.alreadySelected; // No es su turno
-
-    if (index < 0 || index >= board.length) {
-      throw RangeError('Índice fuera de rango del tablero');
-    }
+    if (finished || isChefTurn) return SelectionResult.alreadySelected;
+    if (index < 0 || index >= board.length) throw RangeError('Índice fuera de rango');
 
     final card = board[index];
     if (card.revealed) return SelectionResult.alreadySelected;
 
-    // Revela
     card.revealed = true;
-
-    // Aplica reglas de color
     final res = recipe.applySelectionColor(card.color);
-
-    // Reglas de término inmediato
-    if (res == SelectionResult.black) {
-      finished = true; // Fin inmediato de la ronda (y del juego, lo marca Game)
-      return res;
-    }
-
-    if (res == SelectionResult.neutral) {
-      // Se pierde el turno (no vidas). Termina turno actual.
-      _endCookTurn();
-      return res;
-    }
-
-    if (res == SelectionResult.correct) {
-      // Avance de receta
-      picksRemaining = (picksRemaining - 1).clamp(0, 9999);
-      if (recipe.isCompleted) {
-        finished = true; // Ronda superada
-        return res;
-      }
-      if (picksRemaining == 0) {
-        _endCookTurn();
-      }
-      return res;
-    }
-
-    // exceededRecipeColor o wrongColor → arruina receta: pierdes 1 vida y se cambia la receta
-    _endCookTurn(changeRecipe: true);
+    _currentSelections.add(res);
     return res;
   }
 
-  /// El Cocinero decide plantarse antes de gastar todos los picks
+  /// Plantarse: vuelve turno al Chef. Solo cierra la ronda si ya quedó completa.
   void cookStops() {
-    if (!isChefTurn && !finished) {
-      _endCookTurn();
-    }
-  }
+    if (isChefTurn || finished) return;
 
-  /// Cierra turno del Cocinero y vuelve al Chef
-  void _endCookTurn({bool changeRecipe = false}) {
+    if (recipe.isCompleted) {
+      finished = true;
+    }
+
     activeClue = null;
-    picksRemaining = 0;
     isChefTurn = true;
-    if (!finished && changeRecipe) {
-      recipe = _generateRecipeForBoard(); // nueva receta
-    }
+    _currentSelections.clear();
   }
 
-  /// Genera una receta válida según dificultad y tablero actual (sin contar negros/neutral)
+  /// Receta consistente con tablero
+  /// - Easy: hasta 2 colores; total mínimo 5
+  /// - Medium/Hard: más colores, total mínimo 5
   Recipe _generateRecipeForBoard() {
-    // Colores candidatos (sin neutral ni black)
-    final usableColors = IngredientColor.values
-        .where((c) => c != IngredientColor.neutral && c != IngredientColor.black)
-        .toList();
-
-    // Conteo disponible por color en el tablero
     final boardCount = <IngredientColor, int>{};
     for (final ing in board) {
       if (ing.color == IngredientColor.neutral || ing.color == IngredientColor.black) continue;
       boardCount[ing.color] = (boardCount[ing.color] ?? 0) + 1;
     }
 
-    // Reglas por dificultad
-    int minDistinct;
     int maxDistinct;
-    int minTotalRequired;
+    const int minTotalRequired = 5;
+
     switch (difficulty) {
       case Difficulty.easy:
-        minDistinct = 1; // 1 a 2 colores
-        maxDistinct = 2;
-        minTotalRequired = 4; // “al menos 4 cartas de los colores de la receta”
+        maxDistinct = 2; // receta con 1..2 colores
         break;
       case Difficulty.medium:
-        minDistinct = 2; // 2 a 4 colores
         maxDistinct = 4;
-        minTotalRequired = 3; // “al menos 3 cartas de colores requeridos”
         break;
       case Difficulty.hard:
-        minDistinct = 3; // 3 a 5 colores
         maxDistinct = 5;
-        minTotalRequired = 3; // “al menos 3 colores presentes”
         break;
     }
 
-    // Elige cuántos colores distintos tendrá la receta
     final availableColors = boardCount.keys.toList()..shuffle(_rnd);
     final distinct = availableColors.isEmpty
         ? 1
-        : (_rnd.nextInt((maxDistinct - minDistinct) + 1) + minDistinct)
-            .clamp(1, availableColors.length);
+        : min(maxDistinct, availableColors.length);
 
     final chosenColors = availableColors.take(distinct).toList();
-
-    // Asigna cantidades por color sin exceder disponibilidad y cumpliendo mínimo total
     final req = <IngredientColor, int>{};
-    int remainingMinTotal = minTotalRequired;
+    int remaining = minTotalRequired;
 
-    for (int i = 0; i < chosenColors.length; i++) {
-      final color = chosenColors[i];
+    // al menos 1 por color elegido (si hay disponibilidad)
+    for (final color in chosenColors) {
       final avail = boardCount[color] ?? 0;
-      if (avail <= 0) {
-        req[color] = 0;
-        continue;
-      }
-
-      // Reparte al menos 1 por color si es posible
-      final minForThis = (difficulty == Difficulty.easy && i == 0) ? 2 : 1; // pequeño sesgo en fácil
-      final minPick = min(avail, minForThis);
-      int give = minPick;
-
-      // Intenta agregar algo más aleatorio sin pasar disponibilidad
-      final extraRoom = max(0, avail - give);
-      if (extraRoom > 0) {
-        give += _rnd.nextInt(extraRoom + 1); // 0..extraRoom
-      }
-
-      req[color] = give;
-      remainingMinTotal -= give;
+      if (avail <= 0) continue;
+      req[color] = 1;
+      remaining -= 1;
+      if (remaining <= 0) break;
     }
 
-    // Si no llegamos al mínimo total requerido, reparte incrementando colores con disponibilidad
-    while (remainingMinTotal > 0) {
+    // reparte resto sin pasar disponibilidad
+    while (remaining > 0 && chosenColors.isNotEmpty) {
       bool added = false;
       for (final color in chosenColors) {
         final avail = boardCount[color] ?? 0;
-        if ((req[color] ?? 0) < avail) {
-          req[color] = (req[color] ?? 0) + 1;
-          remainingMinTotal--;
+        final cur = req[color] ?? 0;
+        if (cur < avail) {
+          req[color] = cur + 1;
+          remaining--;
           added = true;
-          if (remainingMinTotal <= 0) break;
+          if (remaining == 0) break;
         }
       }
-      if (!added) break; // no hay más espacio
+      if (!added) break;
     }
 
-    // Limpia ceros
-    req.removeWhere((_, v) => v <= 0);
-
-    // Fallback si quedó vacía (tablero extraño), pide 1 del color más abundante
+    // Garantiza una receta válida
     if (req.isEmpty && boardCount.isNotEmpty) {
-      final best = boardCount.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-      req[best.first.key] = 1;
+      final best = (boardCount.entries.toList()
+            ..sort((a, b) => b.value.compareTo(a.value)))
+          .first;
+      req[best.key] = min(minTotalRequired, best.value);
     }
 
     return Recipe(req);
@@ -415,7 +299,7 @@ class Round {
 }
 
 /// =============================
-/// Juego (varias rondas)
+/// Juego (rondas infinitas + fallo reinicia misma ronda)
 /// =============================
 class Game {
   int lives;
@@ -424,152 +308,154 @@ class Game {
 
   final Difficulty difficulty;
   final Random _rnd;
-  List<Round> rounds = [];
+  final List<Round> rounds = [];
 
-  Game({
-    this.lives = 3,
-    this.difficulty = Difficulty.easy,
-    Random? rnd,
-  }) : _rnd = rnd ?? Random();
+  Game({this.lives = 3, this.difficulty = Difficulty.easy, Random? rnd})
+      : _rnd = rnd ?? Random();
 
-  void startGame({int roundCount = 5}) {
+  int get roundNumber => currentRoundIndex + 1;
+
+  Future<void> startGame({int roundCount = 1}) async {
+    // Se inicia con una ronda; luego serán infinitas
     lives = 3;
     currentRoundIndex = 0;
     isGameOver = false;
 
-    // Intenta poblar WordBank desde la API local (no bloquea la generación inicial).
-    // Si la API responde, surtirá efecto en rondas futuras y/o siguientes partidas.
-    WordBank.instance.tryFetchOnce();
+    WordBank.instance.reset();
+    await WordBank.instance.tryFetchOnce();
 
-    rounds = _generateRounds(roundCount);
+    rounds
+      ..clear()
+      ..add(Round(
+        number: 1,
+        board: _generateBoard(),
+        difficulty: difficulty,
+        rnd: _rnd,
+      ));
   }
 
   Round get currentRound => rounds[currentRoundIndex];
 
-  /// Chef da pista en la ronda actual
   void giveClue(Clue clue) {
     if (isGameOver) return;
     currentRound.giveClue(clue);
   }
 
-  /// Cocinero elige carta -> retorna resultado y aplica efectos de juego (vidas, fin, avance)
+  /// Centraliza aquí TODAS las vidas:
+  /// - Negro: pierde vida y fin del juego
+  /// - Fallo (wrong/exceeded): pierde vida y se reinicia MISMA ronda (nuevo tablero/receta)
+  /// - Completa receta: avanza a siguiente ronda (infinita)
   SelectionResult chooseCard(int index) {
     if (isGameOver) return SelectionResult.alreadySelected;
 
-    final res = currentRound.selectCard(index);
+    final round = currentRound;
+    final res = round.selectCard(index);
 
-    // Efectos a nivel de juego según resultado
-    switch (res) {
-      case SelectionResult.black:
-        isGameOver = true; // fin inmediato
-        break;
-      case SelectionResult.exceededRecipeColor:
-      case SelectionResult.wrongColor:
-        // Pierdes una vida y la ronda cambia de receta (la ronda ya lo hace).
-        lives--;
-        if (lives <= 0) {
-          isGameOver = true;
-        }
-        break;
-      case SelectionResult.neutral:
-      case SelectionResult.correct:
-      case SelectionResult.alreadySelected:
-        // No cambios de vidas aquí
-        break;
+    // ⚫ Negro → pierde vida y fin
+    if (res == SelectionResult.black) {
+      loseLife();
+      isGameOver = true;
+      round.finished = true;
+      return res;
     }
 
-    // Si la ronda terminó por completar receta, avanza
-    if (!isGameOver && currentRound.finished) {
+    // ❌ Fallo → pierde vida y reinicia esta ronda
+    if (res == SelectionResult.wrongColor || res == SelectionResult.exceededRecipeColor) {
+      loseLife();
+      if (!isGameOver) {
+        _resetCurrentRound(); // nueva receta/tablero, mismo número
+      }
+      return res;
+    }
+
+    // ✅ Completa receta → nueva ronda (infinita)
+    if (round.recipe.isCompleted) {
+      round.finished = true;
       _nextRound();
+      return res;
     }
 
+    // 🟡 Neutro o ✅ correcto parcial
     return res;
   }
 
+  /// Plantarse: vuelve al Chef; si ya estaba completa, avanza
   void cookStops() {
-    if (!isGameOver) currentRound.cookStops();
+    if (isGameOver) return;
+
+    final round = currentRound;
+    final wasCompletedBefore = round.recipe.isCompleted;
+
+    round.cookStops();
+
+    if (!wasCompletedBefore && round.finished && round.recipe.isCompleted) {
+      _nextRound();
+    }
   }
 
+  void loseLife() {
+    lives--;
+    if (lives <= 0) {
+      isGameOver = true;
+    }
+  }
+
+  /// Reinicia completamente la ronda actual tras un fallo
+  void _resetCurrentRound() {
+    final current = currentRound;
+    rounds[currentRoundIndex] = Round(
+      number: current.number, // mismo número
+      board: _generateBoard(),
+      difficulty: difficulty,
+      rnd: _rnd,
+    );
+  }
+
+  /// Avanza a la siguiente ronda (infinitas)
   void _nextRound() {
-    if (currentRoundIndex < rounds.length - 1) {
-      currentRoundIndex++;
+    currentRoundIndex++;
+    rounds.add(Round(
+      number: currentRoundIndex + 1,
+      board: _generateBoard(),
+      difficulty: difficulty,
+      rnd: _rnd,
+    ));
+  }
+
+  /// Construye un tablero de 18 cartas
+  /// - 1 negro (2 en hard)
+  /// - EASY: solo 2 colores no neutrales + neutrales opcionales
+  List<Ingredient> _generateBoard() {
+    final board = <Ingredient>[];
+
+    final int blacks = (difficulty == Difficulty.hard) ? 2 : 1;
+    for (int b = 0; b < blacks; b++) {
+      board.add(Ingredient(_pickWord(), IngredientColor.black));
+    }
+
+    int remaining = 18 - board.length;
+
+    final nonNeutral = IngredientColor.values
+        .where((c) => c != IngredientColor.black && c != IngredientColor.neutral)
+        .toList();
+
+    List<IngredientColor> palette;
+    if (difficulty == Difficulty.easy) {
+      nonNeutral.shuffle(_rnd);
+      final two = nonNeutral.take(2).toList(); // solo 2 colores
+      palette = [...two, IngredientColor.neutral]; // neutrales opcionales
     } else {
-      isGameOver = true; // juego completado con éxito
-    }
-  }
-
-  /// =============================
-  /// Generación de rondas/tableros
-  /// =============================
-  List<Round> _generateRounds(int count) {
-    final List<Round> out = [];
-
-    for (int i = 0; i < count; i++) {
-      // 18 cartas
-      final List<Ingredient> board = [];
-
-      // Decide cantidad de negros por dificultad
-      final int blacks =
-          (difficulty == Difficulty.hard) ? 2 : 1; // fácil/medio = 1, difícil = 2
-
-      // Empezamos agregando negros (palabras únicas)
-      for (int b = 0; b < blacks; b++) {
-        board.add(Ingredient(_pickWord(), IngredientColor.black));
-      }
-
-      // El resto: mezcla de colores (incluyendo neutrales)
-      int remaining = 18 - board.length;
-
-      // Asegura al menos N colores distintos no negros ni neutrales en el tablero
-      int minDistinctNonNeutral;
-      switch (difficulty) {
-        case Difficulty.easy:
-          minDistinctNonNeutral = 5;
-          break;
-        case Difficulty.medium:
-          minDistinctNonNeutral = 4;
-          break;
-        case Difficulty.hard:
-          minDistinctNonNeutral = 4;
-          break;
-      }
-
-      final usableColors = IngredientColor.values
-          .where((c) => c != IngredientColor.black)
-          .toList();
-      final nonNeutralColors =
-          usableColors.where((c) => c != IngredientColor.neutral).toList();
-
-      // Semilla de variedad: 1 carta de varios colores no neutrales
-      nonNeutralColors.shuffle(_rnd);
-      final seedCount = min(minDistinctNonNeutral, nonNeutralColors.length);
-      for (int s = 0; s < seedCount && remaining > 0; s++) {
-        board.add(Ingredient(_pickWord(), nonNeutralColors[s]));
-        remaining--;
-      }
-
-      // Rellena el resto con mezcla aleatoria incluyendo neutrales
-      for (int k = 0; k < remaining; k++) {
-        final color = usableColors[_rnd.nextInt(usableColors.length)];
-        board.add(Ingredient(_pickWord(), color));
-      }
-
-      // Baraja tablero
-      board.shuffle(_rnd);
-
-      out.add(Round(
-        number: i + 1,
-        board: board,
-        difficulty: difficulty,
-        rnd: _rnd,
-      ));
+      palette = [...nonNeutral, IngredientColor.neutral];
     }
 
-    return out;
+    for (int k = 0; k < remaining; k++) {
+      final color = palette[_rnd.nextInt(palette.length)];
+      board.add(Ingredient(_pickWord(), color));
+    }
+
+    board.shuffle(_rnd);
+    return board;
   }
 
-  /// Palabra única desde WordBank (sin repeticiones globales).
-  String _pickWord() {
-    return WordBank.instance.nextWord();
-  }
+  String _pickWord() => WordBank.instance.nextWord();
 }
