@@ -91,6 +91,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  font_awesome_flutter:
+    dependency: "direct main"
+    description:
+      name: font_awesome_flutter
+      sha256: b9011df3a1fa02993630b8fb83526368cf2206a711259830325bab2f1d2a4eb0
+      url: "https://pub.dev"
+    source: hosted
+    version: "10.12.0"
   http:
     dependency: "direct main"
     description:
@@ -171,6 +179,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.16.0"
+  ming_cute_icons:
+    dependency: "direct main"
+    description:
+      name: ming_cute_icons
+      sha256: "03fbf2d9a842b05e81f3158730be4bafaf597ab8da8380eb27f23192aa6f2963"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.7"
   path:
     dependency: transitive
     description:
@@ -195,11 +211,27 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  phosphor_flutter:
+    dependency: "direct main"
+    description:
+      name: phosphor_flutter
+      sha256: "8a14f238f28a0b54842c5a4dc20676598dd4811fcba284ed828bd5a262c11fde"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   sky_engine:
     dependency: transitive
     description: flutter
     source: sdk
     version: "0.0.0"
+  solar_icons:
+    dependency: "direct main"
+    description:
+      name: solar_icons
+      sha256: "2865a62fb0a39a7c2403205bfe05453bd3f2fedbaa8e5c3d436cf2a080afe259"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.5"
   source_span:
     dependency: transitive
     description:

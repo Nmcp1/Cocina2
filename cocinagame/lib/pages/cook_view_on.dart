@@ -128,7 +128,7 @@ class _CookViewOnState extends State<CookViewOn> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: GridView.builder(
                 padding: EdgeInsets.zero,
-                itemCount: 27,
+                itemCount: 24,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   mainAxisSpacing: 16,

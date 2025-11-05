@@ -7,7 +7,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kPrimary,
+      backgroundColor: kTomate,
       body: Stack(
         children: [
           // Media elipse arriba

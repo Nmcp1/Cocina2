@@ -11,6 +11,10 @@ dependencies:
     sdk: flutter
   iconify_flutter: ^0.0.7
   http: ^1.2.2
+  font_awesome_flutter: ^10.6.0
+  phosphor_flutter: ^2.0.1
+  ming_cute_icons: ^0.0.7
+  solar_icons: ^0.0.5
 
 dev_dependencies:
   flutter_test:

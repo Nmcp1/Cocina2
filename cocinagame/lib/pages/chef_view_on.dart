@@ -20,7 +20,7 @@ class _ChefViewOnState extends State<ChefViewOn> {
   final TextEditingController _clueController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
 
-  // Colores originales
+  // Colores originales (24 palabras)
   final List<Color> wordColorsOriginal = [
     kSecondary, kSecondary, kSecondary,
     kBeterraga, kCebolla, kCebolla,
@@ -30,7 +30,6 @@ class _ChefViewOnState extends State<ChefViewOn> {
     kSecondary, kSecondary, kOcultas,
     kBeterraga, kCebolla, kOcultas,
     kSecondary, kSecondary, kSecondary,
-    kBeterraga, kCebolla, kOcultas,
   ];
 
   @override
@@ -43,37 +42,21 @@ class _ChefViewOnState extends State<ChefViewOn> {
       backgroundColor: kBackground1,
       body: Column(
         children: [
-          // Header: Ronda, Turno Chef, Ojo
+          // Header: salir, turno, ojo
           Container(
             color: kPrimary,
-            padding: const EdgeInsets.only(top: 60, left: 16, right: 16, bottom: 12),
+            padding: const EdgeInsets.only(top: 55, left: 16, right: 16, bottom: 10),
             child: SizedBox(
-              height: 40,
+              height: 50,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Ronda 1 alineado a la izquierda
+                  // Botón salir
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text.rich(
-                      TextSpan(
-                        text: 'Ronda ',
-                        style: const TextStyle(
-                          color: kBackground1,
-                          fontSize: 18,
-                          fontWeight: FontWeight.normal,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: '1',
-                            style: const TextStyle(
-                              color: kBackground1,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: kBackground1, size: 32),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                   // Botón Turno Chef centrado
@@ -85,6 +68,7 @@ class _ChefViewOnState extends State<ChefViewOn> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
                       ),
                       onPressed: () {},
                       child: const Text(
@@ -134,37 +118,94 @@ class _ChefViewOnState extends State<ChefViewOn> {
               ),
             ),
           ),
-          // Íconos y entregas
+          // Segunda fila: íconos, timer, contadores
           Container(
             color: kBackground1,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                Row(
-                  children: [
-                    _roundIcon(kSecondary, isYellow: true),
-                    const SizedBox(width: 12),
-                    _roundIcon(kBackground2, isYellow: false),
-                    const SizedBox(width: 12),
-                    _roundIcon(kBackground2, isYellow: false),
-                  ],
-                ),
-                const Spacer(),
-                Text.rich(
-                  TextSpan(
-                    text: 'Entregas ',
-                    style: const TextStyle(
-                      color: kText1,
-                      fontSize: 18,
-                      fontWeight: FontWeight.normal,
+                // Íconos circulares
+                _roundIcon(kSecondary, isYellow: true),
+                const SizedBox(width: 10),
+                _roundIcon(kSecondary, isYellow: true),
+                const SizedBox(width: 10),
+                _roundIcon(kSecondary, isYellow: true),
+                const SizedBox(width: 22),
+                // Timer
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: kCebolla,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    '05:00',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
+                  ),
+                ),
+                const SizedBox(width: 36),
+                // Contador 1
+                Container(
+                  width: 48,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: kBackground2,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      TextSpan(
-                        text: '0',
-                        style: const TextStyle(
+                      Iconify(kBowl, size: 32, color: kPrimary),
+                      const SizedBox(width: 2),
+                      const Text(
+                        '0',
+                        style: TextStyle(
                           color: kText1,
                           fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Contador 2
+                Container(
+                  width: 48,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: kBackground2,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.track_changes, color: kSecondary, size: 22),
+                      const SizedBox(width: 2),
+                      const Text(
+                        '1',
+                        style: TextStyle(
+                          color: kText1,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ],
@@ -223,7 +264,7 @@ class _ChefViewOnState extends State<ChefViewOn> {
           // Input pista y número + ícono enviar a la derecha
           Container(
             color: kPrimary,
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 40), 
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
             child: Row(
               children: [
                 Expanded(
@@ -317,7 +358,7 @@ class _ChefViewOnState extends State<ChefViewOn> {
     );
   }
 
-  Widget _roundIcon(Color color, {bool isYellow = false, double circleSize = 45, double iconSize = 32}) {
+  Widget _roundIcon(Color color, {bool isYellow = false, double circleSize = 40, double iconSize = 28}) {
     return Container(
       width: circleSize,
       height: circleSize,

@@ -1,13 +1,36 @@
 import 'package:flutter/material.dart';
 import '../constants/theme.dart';
+import '../main_nav_bar.dart';
 
-class MainMenuScreen extends StatelessWidget {
+class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
+
+  @override
+  State<MainMenuScreen> createState() => _MainMenuScreenState();
+}
+
+class _MainMenuScreenState extends State<MainMenuScreen> {
+  int _selectedIndex = 0;
+
+  void _onNavTap(int index) {
+    setState(() {
+      _selectedIndex = index;
+      if (index == 0) {
+        Navigator.pushNamed(context, '/menu');
+      } else if (index == 1) {
+        Navigator.pushNamed(context, '/palabras');
+      } else if (index == 2) {
+        Navigator.pushNamed(context, '/clasificaciones');
+      } else if (index == 3) {
+        Navigator.pushNamed(context, '/comojugar');
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kPrimary,
+      backgroundColor: kTomate,
       body: Stack(
         children: [
           // Media elipse arriba
@@ -49,20 +72,6 @@ class MainMenuScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Trofeo arriba del logo
-                Container(
-                  margin: const EdgeInsets.only(bottom: 30),
-                  decoration: BoxDecoration(
-                    color: kBackground1,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.all(8),
-                  child: Icon(
-                    Icons.emoji_events,
-                    color: kSecondary,
-                    size: 32,
-                  ),
-                ),
                 // Logo circular
                 ClipOval(
                   child: SizedBox(
@@ -74,7 +83,7 @@ class MainMenuScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 100),
                 // Botón Jugar
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -86,56 +95,21 @@ class MainMenuScreen extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    Navigator.pushNamed(context, '/chef'); // Navega a la vista chef_view_on
+                    Navigator.pushNamed(context, '/chef');
                   },
                   child: const Text(
                     'Jugar',
                     style: TextStyle(fontSize: 22, color: kBackground2, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(height: 30),
-                // Botón Palabras personalizadas
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kSecondary,
-                    minimumSize: const Size(260, 50),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {
-                    // Acción palabras personalizadas
-                  },
-                  child: const Text(
-                    'Palabras personalizadas',
-                    style: TextStyle(fontSize: 22, color: kBackground2, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                // Botón Cómo jugar
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kBackground1,
-                    minimumSize: const Size(290, 50),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: kSecondary)
-                    ),
-                  ),
-                  onPressed: () {
-                    // Acción cómo jugar
-                  },
-                  child: const Text(
-                    'Cómo jugar',
-                    style: TextStyle(fontSize: 22, color: kSecondary, fontWeight: FontWeight.bold),
-                  ),
-                ),
               ],
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: MainNavBar(
+        currentIndex: _selectedIndex,
+        onTap: _onNavTap,
       ),
     );
   }

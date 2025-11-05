@@ -20,12 +20,11 @@ const Color kTomate = Color(0xFFD62828);
 const Color kZanahoria = Color(0xFFF77F00);
 
 // Íconos Noto como string
-const String kNotoCarrot = "noto:carrot";
-const String kNotoTomato = "noto:tomato";
-const String kNotoOnion = "noto:onion";
-const String kNotoMushroom = "noto:brown-mushroom";
-const String kNotoRootVegetable = "noto:root-vegetable";
-const String kNotoBomb = "noto:bomb";
-const String kNotoBellPepper = "noto:bell-pepper";
-// const String kNotoStar =
-// Agrega aquí los íconos que necesites
+const String kBowl = "noto:bowl-with-spoon";
+const String kCarrot = "noto:carrot";
+const String kTomato = "noto:tomato";
+const String kOnion = "noto:onion";
+const String kMushroom = "noto:brown-mushroom";
+const String kRootVegetable = "noto:root-vegetable";
+const String kBomb = "noto:bomb";
+const String kBellPepper = "noto:bell-pepper";
