@@ -4,7 +4,7 @@ import '/pages/login_screen.dart';
 import '/pages/register_screen.dart';
 import '/pages/main_menu_screen.dart';
 import '/pages/chef_view_on.dart';
-// import '/pages/clasificaciones_screen.dart';
+import '/pages/custom_words.dart';
 
 void main() {
   runApp(const MainApp());
@@ -25,7 +25,7 @@ class MainApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/menu': (context) => const MainMenuScreen(),
         '/chef': (context) => const ChefViewOn(),
-        // '/clasificaciones': (context) => const ClasificacionesScreen(),
+        '/palabras': (context) => const CustomWordsScreen(),
       },
     );
   }
