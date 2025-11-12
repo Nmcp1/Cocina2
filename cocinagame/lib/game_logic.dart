@@ -108,7 +108,7 @@ class WordBank {
     if (_fetchedOnce) return;
     _fetchedOnce = true;
 
-    Future<List<String>?> _tryEndpoint(String url) async {
+    Future<List<String>?> tryEndpoint(String url) async {
       try {
         final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 2));
         if (res.statusCode == 200) {
@@ -122,7 +122,8 @@ class WordBank {
       return null;
     }
 
-    final api = await _tryEndpoint('http://localhost:8000/api/words') ?? await _tryEndpoint('http://localhost:8000/words');
+    final api = await tryEndpoint('http://localhost:8000/api/words') ??
+        await tryEndpoint('http://localhost:8000/words');
 
     if (api != null && api.isNotEmpty) {
       final seen = <String>{};
