@@ -3,7 +3,6 @@ import '/pages/welcome_screen.dart';
 import '/pages/login_screen.dart';
 import '/pages/register_screen.dart';
 import '/pages/main_menu_screen.dart';
-import '/pages/chef_view_on.dart';
 import '/pages/custom_words.dart';
 
 void main() {
@@ -24,7 +23,6 @@ class MainApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/menu': (context) => const MainMenuScreen(),
-        '/chef': (context) => const ChefViewOn(),
         '/palabras': (context) => const CustomWordsScreen(),
       },
     );
