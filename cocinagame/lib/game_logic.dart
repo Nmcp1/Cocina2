@@ -419,7 +419,7 @@ class Game {
     // const Color kPimenton = Color(0xFF2E7D32);
     // const Color kTomate = Color(0xFFD62828);
     // const Color kZanahoria = Color(0xFFF77F00);
-    final nonNeutral = <IngredientColor>[IngredientColor.kBeterraga, IngredientColor.kCebolla, IngredientColor.kChampinon];
+    final nonNeutral = <IngredientColor>[IngredientColor.kBeterraga, IngredientColor.kCebolla, IngredientColor.kChampinon, IngredientColor.kPimenton, IngredientColor.kTomate, IngredientColor.kZanahoria];
     // ⬆️⬆️⬆️
 
     List<IngredientColor> palette;

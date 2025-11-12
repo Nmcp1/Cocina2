@@ -132,8 +132,8 @@ class _ChefViewOnState extends State<ChefViewOn> {
                     children: [
                       Iconify(kBowl, size: 32, color: kPrimary),
                       const SizedBox(width: 2),
-                      const Text(
-                        '0',
+                      Text(
+                        '${widget.game.currentRoundIndex}',
                         style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ],
@@ -150,11 +150,11 @@ class _ChefViewOnState extends State<ChefViewOn> {
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Icon(Icons.track_changes, color: kSecondary, size: 22),
                       SizedBox(width: 2),
                       Text(
-                        '1',
+                        '${widget.game.roundNumber}', // Aquí se utiliza el número de ronda dinámicamente
                         style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ],
