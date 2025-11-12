@@ -7,17 +7,20 @@ import 'package:http/http.dart' as http;
 /// Enums y modelos base
 /// =============================
 
-enum IngredientColor { red, blue, green, yellow, purple, neutral, black }
+// const Color kBeterraga = Color(0xFFE75480)
+// const Color kCebolla = Color(0xFF9B5DE5)
+// const Color kChampinon = Color(0xFF8D6E63);
+// const Color kPimenton = Color(0xFF2E7D32);
+// const Color kTomate = Color(0xFFD62828);
+// const Color kZanahoria = Color(0xFFF77F00);
+// const Color kOcultas = Color(0xFFFFE98D);
+// const Color kNoIngrediente = Color(0xFFC9ADA7);
+
+enum IngredientColor { kBeterraga, kCebolla, kChampinon, kPimenton, kTomate, kZanahoria, kOcultas, black }
+
 enum Difficulty { easy, medium, hard }
 
-enum SelectionResult {
-  correct,
-  exceededRecipeColor,
-  neutral,
-  wrongColor,
-  black,
-  alreadySelected,
-}
+enum SelectionResult { correct, exceededRecipeColor, kOcultas, wrongColor, black, alreadySelected }
 
 /// Ingrediente en el tablero
 class Ingredient {
@@ -41,7 +44,7 @@ class Recipe {
 
   SelectionResult applySelectionColor(IngredientColor color) {
     if (color == IngredientColor.black) return SelectionResult.black;
-    if (color == IngredientColor.neutral) return SelectionResult.neutral;
+    if (color == IngredientColor.kOcultas) return SelectionResult.kOcultas;
 
     if (required.containsKey(color)) {
       if (required[color]! > 0) {
@@ -64,11 +67,7 @@ class Clue {
 }
 
 /// Palabras fallback
-enum Palabras {
-  manzana, bicicleta, elefante, montana, guitarra, ventana, libro, reloj,
-  playa, estrella, nube, perro, balon, arbol, ciudad, fuego, luna, camisa,
-  flor, rio, tren, zapato, mariposa, carro
-}
+enum Palabras { manzana, bicicleta, elefante, montana, guitarra, ventana, libro, reloj, playa, estrella, nube, perro, balon, arbol, ciudad, fuego, luna, camisa, flor, rio, tren, zapato, mariposa, carro, gato, mar }
 
 /// =============================
 /// WordBank con recarga automática
@@ -77,9 +76,9 @@ class WordBank {
   WordBank._();
   static final WordBank instance = WordBank._();
 
-  final Set<String> _used = {};
-  final List<String> _pool = [];
-  final List<String> _base = []; // snapshot de fuente (API o enum)
+  final Set<String> _used = {}; // Palabras ya usadas
+  final List<String> _pool = []; // Pool de palabras disponibles
+  final List<String> _base = []; // Snapshot de las palabras base
   bool _fetchedOnce = false;
   int _fallbackCounter = 1;
   final Random _rnd = Random();
@@ -94,15 +93,15 @@ class WordBank {
 
   void _refillPool() {
     _ensureBase();
-    // Si ya se usaron todas, permite reciclar limpiando usados
-    if (_used.length >= _base.length) {
-      _used.clear();
-    }
-    final candidates = _base.where((w) => !_used.contains(w)).toList()
-      ..shuffle(_rnd);
+    // Limpia las palabras usadas y recarga el pool
+    _used.clear(); // Limpia todas las palabras usadas
+
+    final candidates = List<String>.from(_base);
+    candidates.shuffle(_rnd);
+
     _pool
       ..clear()
-      ..addAll(candidates.isEmpty ? _base : candidates);
+      ..addAll(candidates); // Recarga el pool con todas las palabras base
   }
 
   Future<void> tryFetchOnce() async {
@@ -115,11 +114,7 @@ class WordBank {
         if (res.statusCode == 200) {
           final data = jsonDecode(res.body);
           if (data is List) {
-            final words = data
-                .whereType<String>()
-                .map((s) => s.trim())
-                .where((s) => s.isNotEmpty)
-                .toList();
+            final words = data.whereType<String>().map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
             if (words.isNotEmpty) return words;
           }
         }
@@ -127,8 +122,7 @@ class WordBank {
       return null;
     }
 
-    final api = await _tryEndpoint('http://localhost:8000/api/words') ??
-        await _tryEndpoint('http://localhost:8000/words');
+    final api = await _tryEndpoint('http://localhost:8000/api/words') ?? await _tryEndpoint('http://localhost:8000/words');
 
     if (api != null && api.isNotEmpty) {
       final seen = <String>{};
@@ -142,10 +136,10 @@ class WordBank {
         ..clear()
         ..addAll(normalized);
     } else {
-      _ensureBase(); // cae al enum local
+      _ensureBase(); // Si no se obtiene de la API, usa las palabras locales
     }
 
-    _refillPool();
+    _refillPool(); // Recarga el pool con las palabras obtenidas
   }
 
   String nextWord() {
@@ -153,18 +147,19 @@ class WordBank {
       _refillPool();
     }
     while (_pool.isNotEmpty) {
-      final w = _pool.removeAt(0);
-      if (_used.add(w)) return w; // retorna primera no usada
+      final w = _pool.removeAt(0); // Toma la primera palabra del pool
+      _used.add(w); // Marca la palabra como usada
+      return w;
     }
-    // Defensa final (debería usarse raramente)
+    // Defensa final: si no hay palabras disponibles, genera una palabra por defecto
     return 'ingrediente_${_fallbackCounter++}';
   }
 
   void reset() {
-    _used.clear();
-    _pool.clear();
+    _used.clear(); // Limpia las palabras usadas
+    _pool.clear(); // Limpia el pool de palabras
     _fallbackCounter = 1;
-    // _base se mantiene (snapshot de API/enum); _pool se repuebla al pedir palabras
+    // _base se mantiene igual; es el conjunto de palabras originales
   }
 }
 
@@ -185,12 +180,7 @@ class Round {
   final Random _rnd;
   final List<SelectionResult> _currentSelections = [];
 
-  Round({
-    required this.number,
-    required this.board,
-    required this.difficulty,
-    Random? rnd,
-  }) : _rnd = rnd ?? Random() {
+  Round({required this.number, required this.board, required this.difficulty, Random? rnd}) : _rnd = rnd ?? Random() {
     recipe = _generateRecipeForBoard();
   }
 
@@ -233,7 +223,7 @@ class Round {
   Recipe _generateRecipeForBoard() {
     final boardCount = <IngredientColor, int>{};
     for (final ing in board) {
-      if (ing.color == IngredientColor.neutral || ing.color == IngredientColor.black) continue;
+      if (ing.color == IngredientColor.kOcultas || ing.color == IngredientColor.black) continue;
       boardCount[ing.color] = (boardCount[ing.color] ?? 0) + 1;
     }
 
@@ -253,9 +243,7 @@ class Round {
     }
 
     final availableColors = boardCount.keys.toList()..shuffle(_rnd);
-    final distinct = availableColors.isEmpty
-        ? 1
-        : min(maxDistinct, availableColors.length);
+    final distinct = availableColors.isEmpty ? 1 : min(maxDistinct, availableColors.length);
 
     final chosenColors = availableColors.take(distinct).toList();
     final req = <IngredientColor, int>{};
@@ -288,9 +276,7 @@ class Round {
 
     // Garantiza una receta válida
     if (req.isEmpty && boardCount.isNotEmpty) {
-      final best = (boardCount.entries.toList()
-            ..sort((a, b) => b.value.compareTo(a.value)))
-          .first;
+      final best = (boardCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first;
       req[best.key] = min(minTotalRequired, best.value);
     }
 
@@ -310,8 +296,7 @@ class Game {
   final Random _rnd;
   final List<Round> rounds = [];
 
-  Game({this.lives = 3, this.difficulty = Difficulty.easy, Random? rnd})
-      : _rnd = rnd ?? Random();
+  Game({this.lives = 3, this.difficulty = Difficulty.easy, Random? rnd}) : _rnd = rnd ?? Random();
 
   int get roundNumber => currentRoundIndex + 1;
 
@@ -321,17 +306,12 @@ class Game {
     currentRoundIndex = 0;
     isGameOver = false;
 
-    WordBank.instance.reset();
-    await WordBank.instance.tryFetchOnce();
+    WordBank.instance.reset(); // Limpia las palabras al inicio del juego
+    await WordBank.instance.tryFetchOnce(); // Intenta cargar palabras desde la API
 
     rounds
       ..clear()
-      ..add(Round(
-        number: 1,
-        board: _generateBoard(),
-        difficulty: difficulty,
-        rnd: _rnd,
-      ));
+      ..add(Round(number: 1, board: _generateBoard(), difficulty: difficulty, rnd: _rnd));
   }
 
   Round get currentRound => rounds[currentRoundIndex];
@@ -341,10 +321,6 @@ class Game {
     currentRound.giveClue(clue);
   }
 
-  /// Centraliza aquí TODAS las vidas:
-  /// - Negro: pierde vida y fin del juego
-  /// - Fallo (wrong/exceeded): pierde vida y se reinicia MISMA ronda (nuevo tablero/receta)
-  /// - Completa receta: avanza a siguiente ronda (infinita)
   SelectionResult chooseCard(int index) {
     if (isGameOver) return SelectionResult.alreadySelected;
 
@@ -363,15 +339,16 @@ class Game {
     if (res == SelectionResult.wrongColor || res == SelectionResult.exceededRecipeColor) {
       loseLife();
       if (!isGameOver) {
-        _resetCurrentRound(); // nueva receta/tablero, mismo número
+        _resetCurrentRound(); // Reinicia la ronda (nuevo tablero y receta)
       }
       return res;
     }
 
-    // ✅ Completa receta → nueva ronda (infinita)
+    // ✅ Receta completada → nueva ronda (infinita)
     if (round.recipe.isCompleted) {
       round.finished = true;
-      _nextRound();
+      WordBank.instance._refillPool(); // Recarga las palabras al terminar la ronda
+      _nextRound(); // Avanza a la siguiente ronda
       return res;
     }
 
@@ -414,12 +391,7 @@ class Game {
   /// Avanza a la siguiente ronda (infinitas)
   void _nextRound() {
     currentRoundIndex++;
-    rounds.add(Round(
-      number: currentRoundIndex + 1,
-      board: _generateBoard(),
-      difficulty: difficulty,
-      rnd: _rnd,
-    ));
+    rounds.add(Round(number: currentRoundIndex + 1, board: _generateBoard(), difficulty: difficulty, rnd: _rnd));
   }
 
   /// Construye un tablero de 18 cartas
@@ -441,20 +413,22 @@ class Game {
     //   - red    -> kBeterraga
     //   - yellow -> kSecondary
     //   - purple -> kCebolla
-    final nonNeutral = <IngredientColor>[
-      IngredientColor.red,
-      IngredientColor.yellow,
-      IngredientColor.purple,
-    ];
+    // const Color kBeterraga = Color(0xFFE75480)
+    // const Color kCebolla = Color(0xFF9B5DE5)
+    // const Color kChampinon = Color(0xFF8D6E63);
+    // const Color kPimenton = Color(0xFF2E7D32);
+    // const Color kTomate = Color(0xFFD62828);
+    // const Color kZanahoria = Color(0xFFF77F00);
+    final nonNeutral = <IngredientColor>[IngredientColor.kBeterraga, IngredientColor.kCebolla, IngredientColor.kChampinon];
     // ⬆️⬆️⬆️
 
     List<IngredientColor> palette;
     if (difficulty == Difficulty.easy) {
       nonNeutral.shuffle(_rnd);
       final two = nonNeutral.take(2).toList(); // solo 2 colores
-      palette = [...two, IngredientColor.neutral]; // neutrales opcionales
+      palette = [...two, IngredientColor.kOcultas]; // neutrales opcionales
     } else {
-      palette = [...nonNeutral, IngredientColor.neutral];
+      palette = [...nonNeutral, IngredientColor.kOcultas];
     }
 
     for (int k = 0; k < remaining; k++) {
