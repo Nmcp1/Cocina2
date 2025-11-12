@@ -435,9 +435,18 @@ class Game {
 
     int remaining = 18 - board.length;
 
-    final nonNeutral = IngredientColor.values
-        .where((c) => c != IngredientColor.black && c != IngredientColor.neutral)
-        .toList();
+    // ⬇️⬇️⬇️ CAMBIO IMPORTANTE:
+    // En vez de usar TODOS los colores (red, blue, green, yellow, purple),
+    // solo usamos los que existen visualmente en el front:
+    //   - red    -> kBeterraga
+    //   - yellow -> kSecondary
+    //   - purple -> kCebolla
+    final nonNeutral = <IngredientColor>[
+      IngredientColor.red,
+      IngredientColor.yellow,
+      IngredientColor.purple,
+    ];
+    // ⬆️⬆️⬆️
 
     List<IngredientColor> palette;
     if (difficulty == Difficulty.easy) {

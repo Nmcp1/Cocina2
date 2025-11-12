@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../constants/theme.dart';
 import '../main_nav_bar.dart';
+import '../game_logic.dart';
+import 'chef_view_on.dart';
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -94,8 +96,32 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/chef');
+                  onPressed: () async {
+                    // 1) Crear el juego
+                    final game = Game(
+                      lives: 3,
+                      difficulty: Difficulty.easy, // cambia a medium/hard si quieres
+                    );
+
+                    // 2) Iniciar la primera ronda (carga palabras, etc.)
+                    try {
+                      await game.startGame();
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error al iniciar el juego: $e')),
+                      );
+                      return;
+                    }
+
+                    // 3) Ir a la vista del chef pasando la instancia de Game
+                    if (!context.mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChefViewOn(game: game),
+                      ),
+                    );
                   },
                   child: const Text(
                     'Jugar',

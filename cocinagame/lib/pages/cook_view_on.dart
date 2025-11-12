@@ -2,24 +2,114 @@ import 'package:flutter/material.dart';
 import 'package:iconify_flutter/iconify_flutter.dart';
 import 'package:iconify_flutter/icons/bxs.dart';
 import '../constants/theme.dart';
+import '../game_logic.dart';
 
 class CookViewOn extends StatefulWidget {
+  final Game game;
   final String clue;
   final String number;
 
   const CookViewOn({
     super.key,
+    required this.game,
     required this.clue,
     required this.number,
   });
 
   @override
   State<CookViewOn> createState() => _CookViewOnState();
+
 }
 
 class _CookViewOnState extends State<CookViewOn> {
   // Mantiene el estado de selección de cada palabra
   final Set<int> selectedIndices = {};
+  Round get round => widget.game.currentRound;
+  void _showGameOverDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Fin del juego'),
+        content: Text('Te quedaste sin vidas. Alcanzaste la ronda ${widget.game.roundNumber}.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // cerrar diálogo
+              Navigator.of(context).pop(); // volver desde Cook
+              Navigator.of(context).pop(); // volver desde Chef al menú
+            },
+            child: const Text('Aceptar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNextRoundDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('¡Receta completada!'),
+        content: Text('Pasas a la ronda ${widget.game.roundNumber}.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Seguir jugando'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleTapOnCard(int index) {
+    final beforeRoundNumber = widget.game.roundNumber;
+    final result = widget.game.chooseCard(index);
+
+    // Actualizar selección en base a las cartas reveladas
+    setState(() {
+      selectedIndices.clear();
+      for (int i = 0; i < round.board.length; i++) {
+        if (round.board[i].revealed) {
+          selectedIndices.add(i);
+        }
+      }
+    });
+
+    String msg;
+    switch (result) {
+      case SelectionResult.correct:
+        msg = '¡Correcto! Esta palabra era de la receta.';
+        break;
+      case SelectionResult.neutral:
+        msg = 'Carta neutra, pierdes el turno.';
+        break;
+      case SelectionResult.wrongColor:
+        msg = 'No era de la receta. Pierdes una vida.';
+        break;
+      case SelectionResult.exceededRecipeColor:
+        msg = 'Te pasaste con ese color. Pierdes una vida.';
+        break;
+      case SelectionResult.black:
+        msg = '¡NEGRO! Pierdes una vida y el juego puede terminar.';
+        break;
+      case SelectionResult.alreadySelected:
+        msg = 'Esa carta ya estaba seleccionada.';
+        break;
+    }
+
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+
+    if (widget.game.isGameOver) {
+      _showGameOverDialog();
+    } else if (widget.game.roundNumber > beforeRoundNumber) {
+      // Pasaste a una nueva ronda
+      _showNextRoundDialog();
+    }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +138,7 @@ class _CookViewOnState extends State<CookViewOn> {
                         ),
                         children: [
                           TextSpan(
-                            text: '1',
+                            text: '${widget.game.roundNumber}', // 👈 aquí usamos el Game
                             style: const TextStyle(
                               color: kBackground1,
                               fontWeight: FontWeight.bold,
@@ -59,6 +149,7 @@ class _CookViewOnState extends State<CookViewOn> {
                       ),
                     ),
                   ),
+
                   Center(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -128,7 +219,7 @@ class _CookViewOnState extends State<CookViewOn> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: GridView.builder(
                 padding: EdgeInsets.zero,
-                itemCount: 24,
+                itemCount: round.board.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   mainAxisSpacing: 16,
@@ -136,17 +227,11 @@ class _CookViewOnState extends State<CookViewOn> {
                   childAspectRatio: 2.2,
                 ),
                 itemBuilder: (context, index) {
-                  final isSelected = selectedIndices.contains(index);
+                  final ingredient = round.board[index];
+                  final isSelected = ingredient.revealed; // o selectedIndices.contains(index);
+
                   return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (isSelected) {
-                          selectedIndices.remove(index);
-                        } else {
-                          selectedIndices.add(index);
-                        }
-                      });
-                    },
+                    onTap: () => _handleTapOnCard(index),
                     child: Stack(
                       children: [
                         Container(
@@ -167,7 +252,8 @@ class _CookViewOnState extends State<CookViewOn> {
                           ),
                           child: Center(
                             child: Text(
-                              'Palabra',
+                              ingredient.name,
+                              textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: kText1,
                                 fontWeight: FontWeight.bold,
@@ -188,8 +274,8 @@ class _CookViewOnState extends State<CookViewOn> {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.18),
-                                    blurRadius: 6,
+                                    color: Colors.black.withOpacity(0.25),
+                                    blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
                                 ],
@@ -205,6 +291,7 @@ class _CookViewOnState extends State<CookViewOn> {
                   );
                 },
               ),
+
             ),
           ),
           // Pista y número mostrados + botón enviar para volver
