@@ -6,6 +6,7 @@ import 'package:iconify_flutter/icons/mdi.dart';
 import '../constants/theme.dart';
 import '../game_logic.dart';
 import 'cook_view_on.dart';
+import 'cook_transicion.dart';
 
 class ChefViewOn extends StatefulWidget {
   final Game game;
@@ -258,31 +259,36 @@ class _ChefViewOnState extends State<ChefViewOn> {
                       final numberText = _numberController.text.trim();
 
                       if (clueText.isEmpty || numberText.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Debes ingresar la pista y el número.')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Debes ingresar la pista y el número.')),
+                        );
                         return;
                       }
 
                       final qty = int.tryParse(numberText);
                       if (qty == null || qty <= 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('El número debe ser un entero positivo.')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('El número debe ser un entero positivo.')),
+                        );
                         return;
                       }
 
-                      setState(() {
-                        _clue = clueText;
-                        _number = numberText;
-                        _showOcultas = false;
-                      });
-
+                      // Enviar la pista al modelo
                       widget.game.giveClue(Clue(clueText, qty));
 
-                      Navigator.push(
+                      // Ir a la pantalla de transición hacia el Cocinero
+                      Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => CookViewOn(game: widget.game, clue: clueText, number: numberText),
+                          builder: (_) => CookTransicion(
+                            game: widget.game,
+                            clue: clueText,
+                            number: numberText,
+                          ),
                         ),
                       );
                     },
+
                   ),
                 ),
               ],

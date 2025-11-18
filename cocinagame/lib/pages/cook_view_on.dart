@@ -3,6 +3,7 @@ import 'package:iconify_flutter/iconify_flutter.dart';
 import 'package:iconify_flutter/icons/bxs.dart';
 import '../constants/theme.dart';
 import '../game_logic.dart';
+import 'chef_transicion.dart';
 
 class CookViewOn extends StatefulWidget {
   final Game game;
@@ -54,7 +55,6 @@ class _CookViewOnState extends State<CookViewOn> {
     final beforeRoundNumber = widget.game.roundNumber;
     final result = widget.game.chooseCard(index);
 
-    // Actualizar selección en base a las cartas reveladas
     setState(() {
       selectedIndices.clear();
       for (int i = 0; i < round.board.length; i++) {
@@ -88,13 +88,44 @@ class _CookViewOnState extends State<CookViewOn> {
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
+    // Si el juego terminó, mostramos el diálogo y no seguimos
     if (widget.game.isGameOver) {
       _showGameOverDialog();
-    } else if (widget.game.roundNumber > beforeRoundNumber) {
-      // Pasaste a una nueva ronda
-      _showNextRoundDialog();
+      return;
     }
+
+    // ⛔ Casos que TERMINAN el turno del cocinero:
+    // - wrongColor (color incorrecto)
+    // - exceededRecipeColor (se pasó en un color)
+    // - kOcultas (carta neutra)
+    if (result == SelectionResult.wrongColor ||
+        result == SelectionResult.exceededRecipeColor ||
+        result == SelectionResult.kOcultas) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChefTransicion(game: widget.game),
+        ),
+      );
+      return;
+    }
+
+    // ✅ Caso: la receta se completó y se avanzó de ronda
+    if (widget.game.roundNumber > beforeRoundNumber) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChefTransicion(game: widget.game),
+        ),
+      );
+      return;
+    }
+
+    // Si fue correcto pero aún no se completa la receta,
+    // o fue una carta ya seleccionada, el turno sigue con el cocinero.
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -265,8 +296,15 @@ class _CookViewOnState extends State<CookViewOn> {
                   child: IconButton(
                     icon: const Icon(Icons.arrow_forward, color: Colors.white),
                     onPressed: () {
-                      Navigator.pop(context);
+                      widget.game.cookStops();
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChefTransicion(game: widget.game),
+                        ),
+                      );
                     },
+
                   ),
                 ),
               ],
