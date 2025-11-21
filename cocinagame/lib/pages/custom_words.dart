@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'add_word_dialog.dart';
+import 'edit_word_dialog.dart';
 import '../constants/theme.dart';
 import '../main_nav_bar.dart';
 
@@ -102,7 +104,16 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
                     onTap: () {
-                      // Acción para agregar palabra
+                      showDialog(
+                        context: context,
+                        builder: (context) => AddWordDialog(
+                          onAdd: (word) {
+                            setState(() {
+                              customWords.add(word);
+                            });
+                          },
+                        ),
+                      );
                     },
                     child: const SizedBox(
                       width: 40,
@@ -133,28 +144,34 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 itemCount: customWords.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.transparent),
+                physics: const BouncingScrollPhysics(), // <-- scroll suave
+                separatorBuilder: (_, __) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Divider(
+                    height: 14,
+                    thickness: 1,
+                    color: Colors.grey.withOpacity(0.65),
+                  ),
+                ),
                 itemBuilder: (context, index) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), // puedes ajustar vertical aquí también
                     child: Row(
                       children: [
                         // Ícono personalizado
                         Container(
-                          width: 36,
-                          height: 36,
+                          width: 34,
+                          height: 34,
                           decoration: BoxDecoration(
-                            color: kSecondary,
+                            color: Colors.transparent, // Sin fondo, la imagen ya lo tiene
                             shape: BoxShape.circle,
                           ),
-                          child: const Center(
-                            child: Text(
-                              'P',
-                              style: TextStyle(
-                                color: kBackground2,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ),
+                          child: Center(
+                            child: Image.asset(
+                              'assets/images/icon_word.png',
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.contain,
                             ),
                           ),
                         ),
@@ -170,14 +187,30 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Botón editar
+                        // Botón editar para cada palabra
                         Material(
                           color: kPrimary,
                           borderRadius: BorderRadius.circular(8),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(8),
                             onTap: () {
-                              // Acción para editar palabra
+                              showDialog(
+                                context: context,
+                                builder: (context) => EditWordDialog(
+                                  initialWord: customWords[index],
+                                  onEdit: (newWord) {
+                                    setState(() {
+                                      customWords[index] = newWord;
+                                    });
+                                  },
+                                  onDelete: () {
+                                    setState(() {
+                                      customWords.removeAt(index);
+                                    });
+                                    // Solo cierra los modales, no navega fuera de la pantalla
+                                  },
+                                ),
+                              );
                             },
                             child: const SizedBox(
                               width: 32,

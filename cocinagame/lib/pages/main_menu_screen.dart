@@ -3,6 +3,7 @@ import '../constants/theme.dart';
 import '../main_nav_bar.dart';
 import '../game_logic.dart';
 import 'chef_view_on.dart';
+import 'game_config_dialog.dart';
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -35,7 +36,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       backgroundColor: kTomate,
       body: Stack(
         children: [
-          // Media elipse arriba
           Positioned(
             top: 0,
             left: 0,
@@ -52,7 +52,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               ),
             ),
           ),
-          // Texto COCINA2 sobre la elipse
           Positioned(
             top: 60,
             left: 0,
@@ -68,7 +67,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               ),
             ),
           ),
-          // Contenido centrado
           Align(
             alignment: Alignment.center,
             child: Column(
@@ -86,7 +84,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   ),
                 ),
                 const SizedBox(height: 100),
-                // Botón Jugar
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kSecondary,
@@ -97,29 +94,32 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     ),
                   ),
                   onPressed: () async {
-                    // 1) Crear el juego
-                    final game = Game(
-                      lives: 3,
-                      difficulty: Difficulty.easy, // cambia a medium/hard si quieres
-                    );
-
-                    // 2) Iniciar la primera ronda (carga palabras, etc.)
-                    try {
-                      await game.startGame();
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error al iniciar el juego: $e')),
-                      );
-                      return;
-                    }
-
-                    // 3) Ir a la vista del chef pasando la instancia de Game
-                    if (!context.mounted) return;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ChefViewOn(game: game),
+                    showDialog(
+                      context: context,
+                      builder: (context) => GameConfigDialog(
+                        onConfirm: (difficulty, useCustomWords) async {
+                          final game = Game(
+                            lives: 3,
+                            difficulty: difficulty, // <-- aquí se pasa la dificultad seleccionada
+                            useCustomWords: useCustomWords,
+                          );
+                          try {
+                            await game.startGame();
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error al iniciar el juego: $e')),
+                            );
+                            return;
+                          }
+                          if (!context.mounted) return;
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChefViewOn(game: game),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },

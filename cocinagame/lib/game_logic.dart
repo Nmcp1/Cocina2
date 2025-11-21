@@ -294,10 +294,16 @@ class Game {
   bool isGameOver = false;
 
   final Difficulty difficulty;
+  final bool useCustomWords; // <-- agrega esto
   final Random _rnd;
   final List<Round> rounds = [];
 
-  Game({this.lives = 3, this.difficulty = Difficulty.easy, Random? rnd}) : _rnd = rnd ?? Random();
+  Game({
+    this.lives = 3,
+    this.difficulty = Difficulty.easy,
+    this.useCustomWords = false, // <-- y aquí
+    Random? rnd,
+  }) : _rnd = rnd ?? Random();
 
   int get roundNumber => currentRoundIndex + 1;
 
