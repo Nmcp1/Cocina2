@@ -291,6 +291,7 @@ class Round {
 class Game {
   int lives;
   int currentRoundIndex = 0;
+  int score = 0;
   bool isGameOver = false;
 
   final Difficulty difficulty;
@@ -448,4 +449,12 @@ class Game {
   }
 
   String _pickWord() => WordBank.instance.nextWord();
+
+  //exportar puntuacion
+  Map<String, dynamic> exportScore({required String playerName}) {
+  return {
+    'player_name': playerName,
+    'score': score,
+  };
+  }
 }

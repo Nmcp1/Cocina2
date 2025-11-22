@@ -99,7 +99,7 @@ class _ChefViewOnState extends State<ChefViewOn> {
             ),
           ),
 
-          // FILA 2 (iconos, timer, etc) — igual que lo tenías
+          // FILA 2
           Container(
             color: kBackground1,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -111,14 +111,6 @@ class _ChefViewOnState extends State<ChefViewOn> {
                 const SizedBox(width: 10),
                 _roundIcon(kSecondary, isYellow: true),
                 const SizedBox(width: 22),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(color: kCebolla, borderRadius: BorderRadius.circular(16)),
-                  child: const Text(
-                    '05:00',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ),
                 const SizedBox(width: 36),
                 Container(
                   width: 48,
@@ -134,7 +126,7 @@ class _ChefViewOnState extends State<ChefViewOn> {
                       Iconify(kBowl, size: 32, color: kPrimary),
                       const SizedBox(width: 2),
                       Text(
-                        '${widget.game.currentRoundIndex}',
+                        '${widget.game.score}',
                         style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ],

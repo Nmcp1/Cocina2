@@ -1,3 +1,4 @@
+import 'package:cocinagame/pages/how_to_play.dart';
 import 'package:flutter/material.dart';
 import '/pages/welcome_screen.dart';
 import '/pages/login_screen.dart';
@@ -24,6 +25,7 @@ class MainApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/menu': (context) => const MainMenuScreen(),
         '/palabras': (context) => const CustomWordsScreen(),
+        '/comojugar': (context) => const HowToPlayScreen(),
       },
     );
   }
