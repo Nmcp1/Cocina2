@@ -13,6 +13,23 @@ class AddWordDialog extends StatefulWidget {
 
 class _AddWordDialogState extends State<AddWordDialog> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // Solicita el foco al abrir el modal
+    Future.delayed(Duration.zero, () {
+      _focusNode.requestFocus();
+    });
+  }
+
+  void _submit() {
+    if (_controller.text.trim().isNotEmpty) {
+      widget.onAdd(_controller.text.trim());
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,16 +67,18 @@ class _AddWordDialogState extends State<AddWordDialog> {
                     padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                     child: TextField(
                       controller: _controller,
+                      focusNode: _focusNode,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: 'Ingrese la palabra',
                         hintStyle: TextStyle(fontSize: 18),
                       ),
                       style: const TextStyle(fontSize: 18),
+                      onSubmitted: (_) => _submit(), // Enter agrega palabra
                     ),
                   ),
                 ),
-                const SizedBox(height:40),
+                const SizedBox(height: 40),
                 // Botones alineados como en configurar partida
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -91,12 +110,7 @@ class _AddWordDialogState extends State<AddWordDialog> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: () {
-                        if (_controller.text.trim().isNotEmpty) {
-                          widget.onAdd(_controller.text.trim());
-                          Navigator.pop(context);
-                        }
-                      },
+                      onPressed: _submit,
                       child: const Text(
                         'Agregar',
                         style: TextStyle(

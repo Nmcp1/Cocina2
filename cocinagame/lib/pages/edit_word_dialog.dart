@@ -20,11 +20,23 @@ class EditWordDialog extends StatefulWidget {
 
 class _EditWordDialogState extends State<EditWordDialog> {
   late TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialWord);
+    Future.delayed(Duration.zero, () {
+      _focusNode.requestFocus();
+    });
+  }
+
+  void _submit() {
+    final word = _controller.text.trim();
+    if (word.isNotEmpty) {
+      widget.onEdit(word);
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -66,12 +78,14 @@ class _EditWordDialogState extends State<EditWordDialog> {
                           padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                           child: TextField(
                             controller: _controller,
+                            focusNode: _focusNode,
                             decoration: const InputDecoration(
                               border: InputBorder.none,
                               hintText: 'Palabra personalizada',
                               hintStyle: TextStyle(fontSize: 18),
                             ),
                             style: const TextStyle(fontSize: 18),
+                            onSubmitted: (_) => _submit(), // Enter edita palabra
                           ),
                         ),
                       ),
@@ -162,7 +176,7 @@ class _EditWordDialogState extends State<EditWordDialog> {
                         child: const SizedBox(
                           width: 40,
                           height: 40,
-                          child: Icon(Icons.delete, color: kBackground1, size: 28),
+                          child: Icon(Icons.delete_forever_rounded, color: kBackground1, size: 28),
                         ),
                       ),
                     ),
@@ -200,13 +214,7 @@ class _EditWordDialogState extends State<EditWordDialog> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: () {
-                        final word = _controller.text.trim();
-                        if (word.isNotEmpty) {
-                          widget.onEdit(word);
-                          Navigator.pop(context);
-                        }
-                      },
+                      onPressed: _submit,
                       child: const Text(
                         'Editar',
                         style: TextStyle(

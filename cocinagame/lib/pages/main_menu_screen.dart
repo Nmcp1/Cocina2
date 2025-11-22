@@ -36,6 +36,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       backgroundColor: kTomate,
       body: Stack(
         children: [
+          // Media elipse arriba
           Positioned(
             top: 0,
             left: 0,
@@ -52,6 +53,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               ),
             ),
           ),
+          // Texto COCINA2 sobre la elipse
           Positioned(
             top: 60,
             left: 0,
@@ -67,27 +69,28 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               ),
             ),
           ),
+          // Contenido ovalado central
           Align(
             alignment: Alignment.center,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo circular
+                const SizedBox(height: 85),
                 ClipOval(
                   child: SizedBox(
-                    width: 220,
-                    height: 220,
+                    width: 250,
+                    height: 250,
                     child: Image.asset(
                       'assets/images/logo_cocina2.png',
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                const SizedBox(height: 100),
+                const SizedBox(height: 60),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kSecondary,
-                    minimumSize: const Size(290, 50),
+                    minimumSize: const Size(200, 50),
                     elevation: 4,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -100,7 +103,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                         onConfirm: (difficulty, useCustomWords) async {
                           final game = Game(
                             lives: 3,
-                            difficulty: difficulty, // <-- aquí se pasa la dificultad seleccionada
+                            difficulty: difficulty,
                             useCustomWords: useCustomWords,
                           );
                           try {
@@ -125,7 +128,18 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   },
                   child: const Text(
                     'Jugar',
-                    style: TextStyle(fontSize: 22, color: kBackground2, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 24, color: kBackground2, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 40),
+                TextButton(
+                  onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+                  child: const Text(
+                    'Cerrar sesión',
+                    style: TextStyle(
+                      color: kBackground1,
+                      fontSize: 18,
+                    ),
                   ),
                 ),
               ],

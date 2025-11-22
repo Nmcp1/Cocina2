@@ -3,6 +3,9 @@ import 'add_word_dialog.dart';
 import 'edit_word_dialog.dart';
 import '../constants/theme.dart';
 import '../main_nav_bar.dart';
+import 'package:ming_cute_icons/ming_cute_icons.dart';
+import 'package:diacritic/diacritic.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CustomWordsScreen extends StatefulWidget {
   const CustomWordsScreen({super.key});
@@ -15,7 +18,17 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
   int _selectedIndex = 1;
   final TextEditingController _searchController = TextEditingController();
 
-  final List<String> customWords = List.generate(8, (index) => 'Palabra personalizada');
+  // Lista de palabras personalizadas (inicia vacía)
+  List<String> customWords = [];
+
+  // Palabras filtradas según el buscador
+  List<String> get filteredWords {
+    final query = removeDiacritics(_searchController.text.trim().toLowerCase());
+    if (query.isEmpty) return customWords;
+    return customWords.where((word) =>
+      removeDiacritics(word.toLowerCase()).contains(query)
+    ).toList();
+  }
 
   void _onNavTap(int index) {
     setState(() {
@@ -29,6 +42,58 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
         Navigator.pushNamed(context, '/comojugar');
       }
     });
+  }
+
+  // Cargar palabras al iniciar
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {}); // Actualiza la vista al escribir en el buscador
+    });
+    _loadWords();
+  }
+
+  Future<void> _loadWords() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      customWords = prefs.getStringList('customWords') ?? [];
+    });
+  }
+
+  Future<void> _saveWords() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('customWords', customWords);
+  }
+
+  // Al agregar palabra
+  void _addWord(String word) {
+    setState(() {
+      customWords.add(word);
+    });
+    _saveWords();
+  }
+
+  // Al editar palabra
+  void _editWord(int index, String newWord) {
+    setState(() {
+      customWords[index] = newWord;
+    });
+    _saveWords();
+  }
+
+  // Al eliminar palabra
+  void _deleteWord(int index) {
+    setState(() {
+      customWords.removeAt(index);
+    });
+    _saveWords();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -80,19 +145,23 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.search, color: kPrimary),
+                      prefixIcon: const Icon(
+                        MingCuteIcons.mgc_search_3_fill,
+                        color: kPrimary,
+                        size: 26,
+                      ),
                       hintText: 'Buscar palabra',
                       hintStyle: const TextStyle(color: kText2),
                       filled: true,
-                      fillColor: kBackground2,
+                      fillColor: kBackground1,
                       contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: kPrimary, width: 2),
+                        borderSide: BorderSide(color: kPrimary, width: 1),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: kPrimary, width: 2),
+                        borderSide: BorderSide(color: kPrimary, width: 1),
                       ),
                     ),
                   ),
@@ -108,9 +177,7 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                         context: context,
                         builder: (context) => AddWordDialog(
                           onAdd: (word) {
-                            setState(() {
-                              customWords.add(word);
-                            });
+                            _addWord(word);
                           },
                         ),
                       );
@@ -141,89 +208,101 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                   ),
                 ],
               ),
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                itemCount: customWords.length,
-                physics: const BouncingScrollPhysics(), // <-- scroll suave
-                separatorBuilder: (_, __) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Divider(
-                    height: 14,
-                    thickness: 1,
-                    color: Colors.grey.withOpacity(0.65),
-                  ),
-                ),
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), // puedes ajustar vertical aquí también
-                    child: Row(
-                      children: [
-                        // Ícono personalizado
-                        Container(
-                          width: 34,
-                          height: 34,
-                          decoration: BoxDecoration(
-                            color: Colors.transparent, // Sin fondo, la imagen ya lo tiene
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Image.asset(
-                              'assets/images/icon_word.png',
-                              width: 32,
-                              height: 32,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
+              child: filteredWords.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No hay palabras personalizadas',
+                        style: TextStyle(
+                          color: kText2,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            customWords[index],
-                            style: const TextStyle(
-                              color: kText1,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      itemCount: filteredWords.length,
+                      physics: const BouncingScrollPhysics(),
+                      separatorBuilder: (_, __) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Divider(
+                          height: 14,
+                          thickness: 1,
+                          color: Colors.grey.withOpacity(0.65),
                         ),
-                        const SizedBox(width: 8),
-                        // Botón editar para cada palabra
-                        Material(
-                          color: kPrimary,
-                          borderRadius: BorderRadius.circular(8),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(8),
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => EditWordDialog(
-                                  initialWord: customWords[index],
-                                  onEdit: (newWord) {
-                                    setState(() {
-                                      customWords[index] = newWord;
-                                    });
-                                  },
-                                  onDelete: () {
-                                    setState(() {
-                                      customWords.removeAt(index);
-                                    });
-                                    // Solo cierra los modales, no navega fuera de la pantalla
-                                  },
+                      ),
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          child: Row(
+                            children: [
+                              // Ícono personalizado
+                              Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  shape: BoxShape.circle,
                                 ),
-                              );
-                            },
-                            child: const SizedBox(
-                              width: 32,
-                              height: 32,
-                              child: Icon(Icons.edit, color: kBackground1, size: 22),
-                            ),
+                                child: Center(
+                                  child: Image.asset(
+                                    'assets/images/icon_word.png',
+                                    width: 32,
+                                    height: 32,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  filteredWords[index],
+                                  style: const TextStyle(
+                                    color: kText1,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Botón editar para cada palabra
+                              Material(
+                                color: kPrimary,
+                                borderRadius: BorderRadius.circular(8),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => EditWordDialog(
+                                        initialWord: filteredWords[index],
+                                        onEdit: (newWord) {
+                                          final originalIndex = customWords.indexOf(filteredWords[index]);
+                                          if (originalIndex != -1) {
+                                            _editWord(originalIndex, newWord);
+                                          }
+                                        },
+                                        onDelete: () {
+                                          final originalIndex = customWords.indexOf(filteredWords[index]);
+                                          if (originalIndex != -1) {
+                                            _deleteWord(originalIndex);
+                                          }
+                                        },
+                                      ),
+                                    );
+                                  },
+                                  child: const SizedBox(
+                                    width: 32,
+                                    height: 32,
+                                    child: Icon(Icons.edit, color: kBackground1, size: 22),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ),
         ],
