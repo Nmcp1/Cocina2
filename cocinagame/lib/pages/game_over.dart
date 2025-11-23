@@ -8,6 +8,8 @@ class GameOverScreen extends StatelessWidget {
   final int ronda;
   final int recetas;
   final int vidas;
+  final int puntajeTotal;
+  final int puntosGanadosTurno;
   final Game? previousGame;
 
   const GameOverScreen({
@@ -15,6 +17,8 @@ class GameOverScreen extends StatelessWidget {
     required this.ronda,
     required this.recetas,
     required this.vidas,
+    required this.puntajeTotal,
+    required this.puntosGanadosTurno,
     this.previousGame,
   });
 
@@ -96,12 +100,50 @@ class GameOverScreen extends StatelessWidget {
                       '¡Fuera de la Cocina!',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 10),
+                  // Puntaje actual y puntos ganados en el turno
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: kCebolla,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.10),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '$puntajeTotal Puntos',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        puntosGanadosTurno > 0 ? 'Ganaste +$puntosGanadosTurno Puntos' : '',
+                        style: const TextStyle(
+                          color: kText1,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
                   // Datos de ronda, recetas, vidas
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -120,10 +162,10 @@ class GameOverScreen extends StatelessWidget {
                     width: 300,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 10),
                   // Botón Volver a jugar
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 8),
                     child: SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(

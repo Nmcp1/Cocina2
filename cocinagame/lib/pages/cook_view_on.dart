@@ -97,7 +97,7 @@ class CookViewOn extends StatefulWidget {
 
 class _CookViewOnState extends State<CookViewOn> {
   final Set<int> selectedIndices = {};
-  int? lastSelectedIndex; // <-- NUEVO: guarda el último índice seleccionado
+  int? lastSelectedIndex;
   Round get round => widget.game.currentRound;
 
   int _correctThisTurn = 0;
@@ -112,9 +112,9 @@ class _CookViewOnState extends State<CookViewOn> {
     final points = _calculatePointsForCorrect(_correctThisTurn);
     if (points > 0) {
       widget.game.score += points;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ganaste $points puntos este turno. Puntaje total: ${widget.game.score}')),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('Ganaste $points puntos este turno. Puntaje total: ${widget.game.score}')),
+      // );
     }
     _correctThisTurn = 0;
   }
@@ -130,7 +130,7 @@ class _CookViewOnState extends State<CookViewOn> {
           selectedIndices.add(i);
         }
       }
-      lastSelectedIndex = index; // <-- actualiza el último índice seleccionado
+      lastSelectedIndex = index;
     });
 
     String msg;
@@ -149,7 +149,7 @@ class _CookViewOnState extends State<CookViewOn> {
         msg = 'Te pasaste con ese color. Pierdes una vida.';
         break;
       case SelectionResult.black:
-        msg = '¡NEGRO! Pierdes una vida.';
+        msg = '¡NEGRO! Se acabó el juego.';
         break;
       case SelectionResult.alreadySelected:
         msg = 'Esa carta ya estaba seleccionada.';
@@ -167,6 +167,8 @@ class _CookViewOnState extends State<CookViewOn> {
             ronda: widget.game.roundNumber,
             recetas: widget.game.currentRoundIndex,
             vidas: widget.game.lives,
+            puntajeTotal: widget.game.score, // <-- AGREGA ESTE
+            puntosGanadosTurno: _calculatePointsForCorrect(_correctThisTurn), // <-- Y ESTE
             previousGame: widget.game,
           ),
         ),
@@ -178,11 +180,15 @@ class _CookViewOnState extends State<CookViewOn> {
     if (result == SelectionResult.wrongColor ||
         result == SelectionResult.exceededRecipeColor ||
         result == SelectionResult.kOcultas) {
+      final points = _calculatePointsForCorrect(_correctThisTurn); // <-- GUARDA LOS PUNTOS DEL TURNO
       _endTurnAndAwardPoints();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => ChefTransicion(game: widget.game),
+          builder: (_) => ChefTransicion(
+            game: widget.game,
+            puntosGanados: points, // <-- PASA LOS PUNTOS DEL TURNO
+          ),
         ),
       );
       return;
@@ -190,11 +196,15 @@ class _CookViewOnState extends State<CookViewOn> {
 
     // Navega a transición chef si cambia la ronda
     if (widget.game.roundNumber > beforeRoundNumber) {
+      final points = _calculatePointsForCorrect(_correctThisTurn); // <-- GUARDA LOS PUNTOS DEL TURNO
       _endTurnAndAwardPoints();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => ChefTransicion(game: widget.game),
+          builder: (_) => ChefTransicion(
+            game: widget.game,
+            puntosGanados: points, // <-- PASA LOS PUNTOS DEL TURNO
+          ),
         ),
       );
       return;
@@ -306,6 +316,7 @@ class _CookViewOnState extends State<CookViewOn> {
                       ),
                     ),
                   ),
+                  
                 ),
               ],
             ),
@@ -469,12 +480,16 @@ class _CookViewOnState extends State<CookViewOn> {
                   child: IconButton(
                     icon: const Icon(Icons.arrow_forward, color: Colors.white),
                     onPressed: () {
+                      final points = _calculatePointsForCorrect(_correctThisTurn); // Calcula antes de resetear
                       widget.game.cookStops();
                       _endTurnAndAwardPoints();
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => ChefTransicion(game: widget.game),
+                          builder: (_) => ChefTransicion(
+                            game: widget.game,
+                            puntosGanados: points, // Pasa el valor correcto
+                          ),
                         ),
                       );
                     },

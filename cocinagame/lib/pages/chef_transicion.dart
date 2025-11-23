@@ -6,8 +6,13 @@ import 'chef_view_on.dart';
 
 class ChefTransicion extends StatelessWidget {
   final Game game;
+  final int? puntosGanados; // <-- NUEVO: puntos ganados en el turno
 
-  const ChefTransicion({super.key, required this.game});
+  const ChefTransicion({
+    super.key,
+    required this.game,
+    this.puntosGanados,
+  });
 
   Round get round => game.currentRound;
 
@@ -16,6 +21,8 @@ class ChefTransicion extends StatelessWidget {
     final rondaActual = game.roundNumber;
     final recetasCompletadas = game.currentRoundIndex;
     final vidas = game.lives;
+    final puntajeActual = game.score;
+    final puntosTurno = puntosGanados ?? 0;
 
     return Scaffold(
       backgroundColor: kBackground1,
@@ -99,16 +106,44 @@ class ChefTransicion extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // Subtítulo
-                  const Text(
-                    'Entrega el celular al Chef',
-                    style: TextStyle(
-                      color: kText1,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  // Puntaje actual y puntos ganados en el turno
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: kCebolla,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.10),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '$puntajeActual Puntos',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        puntosTurno > 0 ? 'Ganaste +$puntosTurno Puntos' : '',
+                        style: const TextStyle(
+                          color: kText1,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 20),
                   // Datos de ronda, recetas, vidas
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
