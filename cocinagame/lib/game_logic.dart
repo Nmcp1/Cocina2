@@ -408,27 +408,32 @@ class Game {
   List<Ingredient> _generateBoard() {
     final board = <Ingredient>[];
 
+    int totalCards;
+    switch (difficulty) {
+      case Difficulty.hard:
+        totalCards = 21;
+        break;
+      case Difficulty.medium:
+      case Difficulty.easy:
+        totalCards = 24;
+        break;
+    }
+
     final int blacks = (difficulty == Difficulty.hard) ? 2 : 1;
     for (int b = 0; b < blacks; b++) {
       board.add(Ingredient(_pickWord(), IngredientColor.black));
     }
 
-    int remaining = 18 - board.length;
+    int remaining = totalCards - board.length;
 
-    // ⬇️⬇️⬇️ CAMBIO IMPORTANTE:
-    // En vez de usar TODOS los colores (red, blue, green, yellow, purple),
-    // solo usamos los que existen visualmente en el front:
-    //   - red    -> kBeterraga
-    //   - yellow -> kSecondary
-    //   - purple -> kCebolla
-    // const Color kBeterraga = Color(0xFFE75480)
-    // const Color kCebolla = Color(0xFF9B5DE5)
-    // const Color kChampinon = Color(0xFF8D6E63);
-    // const Color kPimenton = Color(0xFF2E7D32);
-    // const Color kTomate = Color(0xFFD62828);
-    // const Color kZanahoria = Color(0xFFF77F00);
-    final nonNeutral = <IngredientColor>[IngredientColor.kBeterraga, IngredientColor.kCebolla, IngredientColor.kChampinon, IngredientColor.kPimenton, IngredientColor.kTomate, IngredientColor.kZanahoria];
-    // ⬆️⬆️⬆️
+    final nonNeutral = <IngredientColor>[
+      IngredientColor.kBeterraga,
+      IngredientColor.kCebolla,
+      IngredientColor.kChampinon,
+      IngredientColor.kPimenton,
+      IngredientColor.kTomate,
+      IngredientColor.kZanahoria
+    ];
 
     List<IngredientColor> palette;
     if (difficulty == Difficulty.easy) {

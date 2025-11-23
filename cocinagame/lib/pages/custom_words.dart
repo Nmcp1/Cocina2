@@ -196,7 +196,7 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
           // Lista de palabras personalizadas
           Expanded(
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16), // <-- margen inferior agregado
               decoration: BoxDecoration(
                 color: kBackground2,
                 borderRadius: BorderRadius.circular(12),

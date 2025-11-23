@@ -5,7 +5,6 @@ import 'package:iconify_flutter/icons/bxs.dart';
 import 'package:iconify_flutter/icons/mdi.dart';
 import '../constants/theme.dart';
 import '../game_logic.dart';
-import 'cook_view_on.dart';
 import 'cook_transicion.dart';
 
 class ChefViewOn extends StatefulWidget {
@@ -18,9 +17,7 @@ class ChefViewOn extends StatefulWidget {
 }
 
 class _ChefViewOnState extends State<ChefViewOn> {
-  bool _showOcultas = false; // true = ocultar colores (no las palabras)
-  String _clue = '';
-  String _number = '';
+  bool _showOcultas = false;
   final TextEditingController _clueController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
 
@@ -102,55 +99,44 @@ class _ChefViewOnState extends State<ChefViewOn> {
           // FILA 2
           Container(
             color: kBackground1,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween, // <-- separa los extremos
               children: [
-                _roundIcon(kSecondary, isYellow: true),
-                const SizedBox(width: 10),
-                _roundIcon(kSecondary, isYellow: true),
-                const SizedBox(width: 10),
-                _roundIcon(kSecondary, isYellow: true),
-                const SizedBox(width: 22),
-                const SizedBox(width: 36),
-                Container(
-                  width: 48,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: kBackground2,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 4, offset: const Offset(0, 2))],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Iconify(kBowl, size: 32, color: kPrimary),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${widget.game.score}',
-                        style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                    ],
-                  ),
+                // Íconos de ronda alineados a la izquierda
+                Row(
+                  children: [
+                    _roundIcon(kSecondary, isYellow: true),
+                    const SizedBox(width: 10),
+                    _roundIcon(kSecondary, isYellow: true),
+                    const SizedBox(width: 10),
+                    _roundIcon(kSecondary, isYellow: true),
+                  ],
                 ),
-                const SizedBox(width: 8),
+                // Contenedor de puntaje alineado a la derecha
                 Container(
-                  width: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   height: 40,
                   decoration: BoxDecoration(
-                    color: kBackground2,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 4, offset: const Offset(0, 2))],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.track_changes, color: kSecondary, size: 22),
-                      SizedBox(width: 2),
-                      Text(
-                        '${widget.game.roundNumber}', // Aquí se utiliza el número de ronda dinámicamente
-                        style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 16),
+                    color: kCebolla,
+                    borderRadius: BorderRadius.circular(50),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
                     ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${widget.game.score} PUNTOS', // <-- muestra el puntaje
+                      style: const TextStyle(
+                        color: kBackground1,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -297,55 +283,85 @@ class _ChefViewOnState extends State<ChefViewOn> {
     final required = round.recipe.required;
     if (required.isEmpty) return const SizedBox.shrink();
 
-    String colorName(IngredientColor c) {
+    String imageName(IngredientColor c) {
       switch (c) {
         case IngredientColor.kBeterraga:
-          return 'Betarraga';
+          return 'betarraga.png';
         case IngredientColor.kCebolla:
-          return 'Cebolla';
+          return 'cebolla.png';
         case IngredientColor.kChampinon:
-          return 'Champinon';
+          return 'champiñon.png';
         case IngredientColor.kPimenton:
-          return 'Pimenton';
+          return 'pimenton.png';
         case IngredientColor.kTomate:
-          return 'Tomate';
-        case IngredientColor.kOcultas:
-          return 'Neutro';
+          return 'tomate.png';
         case IngredientColor.kZanahoria:
-          return "Zanahoria";
+          return 'zanahoria.png';
+        case IngredientColor.kOcultas:
+          return 'plato.png';
         case IngredientColor.black:
-          return 'Negro';
+          return 'bomba.png';
       }
     }
 
+    final entries = required.entries.toList();
+    final difficulty = widget.game.difficulty;
+
+    List<List<MapEntry<IngredientColor, int>>> rows;
+
+    if (difficulty == Difficulty.hard && entries.length > 3) {
+      // Tres arriba, el resto abajo
+      rows = [
+        entries.sublist(0, 3),
+        entries.sublist(3),
+      ];
+    } else {
+      rows = [entries];
+    }
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Receta de esta ronda:',
-            style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: required.entries.map((entry) {
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: rows.map((rowEntries) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: rowEntries.map((entry) {
               final color = entry.key;
               final count = entry.value;
-              final bg = _ingredientBgColor(color);
+              final img = imageName(color);
 
-              return Chip(
-                label: Text(
-                  '${colorName(color)} x$count',
-                  style: TextStyle(color: color == IngredientColor.kOcultas ? kText1 : kBackground2, fontWeight: FontWeight.w600),
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _ingredientBgColor(color),
+                  borderRadius: BorderRadius.circular(50),
                 ),
-                backgroundColor: bg,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'assets/images/$img',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'x$count',
+                      style: const TextStyle(
+                        color: kBackground1,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
               );
             }).toList(),
-          ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }

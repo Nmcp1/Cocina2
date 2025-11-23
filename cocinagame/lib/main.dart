@@ -1,10 +1,10 @@
-import 'package:cocinagame/pages/how_to_play.dart';
 import 'package:flutter/material.dart';
 import '/pages/welcome_screen.dart';
 import '/pages/login_screen.dart';
 import '/pages/register_screen.dart';
 import '/pages/main_menu_screen.dart';
 import '/pages/custom_words.dart';
+import '/pages/how_to_play.dart';
 
 void main() {
   runApp(const MainApp());
