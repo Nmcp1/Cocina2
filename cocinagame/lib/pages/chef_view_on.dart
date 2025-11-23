@@ -46,9 +46,30 @@ class _ChefViewOnState extends State<ChefViewOn> {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: kBackground1, size: 32),
-                      onPressed: () => Navigator.pop(context),
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: kBackground1,
+                          borderRadius: BorderRadius.circular(12), // cuadrado redondeado
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Image.asset(
+                            'assets/images/exit.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   Center(
@@ -204,10 +225,12 @@ class _ChefViewOnState extends State<ChefViewOn> {
                   return Container(
                     decoration: BoxDecoration(
                       color: isRevealed ? kBackground1 : ingredientBgColor(ingredient.color),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isRevealed ? ingredientBgColor(ingredient.color) : ingredientBgColor(ingredient.color),
-                        width: 3,
+                        color: isRevealed
+                            ? ingredientBgColor(ingredient.color)
+                            : (ingredient.color == IngredientColor.kOcultas ? kSecondary : ingredientBgColor(ingredient.color)),
+                        width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 2))
@@ -224,8 +247,8 @@ class _ChefViewOnState extends State<ChefViewOn> {
                           : Text(
                               ingredient.name,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: kBackground1,
+                              style: TextStyle(
+                                color: ingredient.color == IngredientColor.kOcultas ? kText1 : kBackground1,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
                               ),
@@ -259,6 +282,11 @@ class _ChefViewOnState extends State<ChefViewOn> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(5), borderSide: BorderSide.none),
                           ),
+                          style: const TextStyle(
+                            color: kText1,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500, // medium
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -276,6 +304,11 @@ class _ChefViewOnState extends State<ChefViewOn> {
                           ),
                           keyboardType: TextInputType.number,
                           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          style: const TextStyle(
+                            color: kText1,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500, // medium
+                          ),
                         ),
                       ),
                     ],
@@ -320,7 +353,6 @@ class _ChefViewOnState extends State<ChefViewOn> {
                         ),
                       );
                     },
-
                   ),
                 ),
               ],

@@ -1,34 +1,30 @@
-// lib/pages/cook_transicion.dart
 import 'package:flutter/material.dart';
 import '../constants/theme.dart';
 import '../game_logic.dart';
-import 'cook_view_on.dart';
+import 'chef_view_on.dart';
+import 'main_menu_screen.dart';
 
-class CookTransicion extends StatelessWidget {
-  final Game game;
-  final String clue;
-  final String number;
+class GameOverScreen extends StatelessWidget {
+  final int ronda;
+  final int recetas;
+  final int vidas;
+  final Game? previousGame;
 
-  const CookTransicion({
+  const GameOverScreen({
     super.key,
-    required this.game,
-    required this.clue,
-    required this.number,
+    required this.ronda,
+    required this.recetas,
+    required this.vidas,
+    this.previousGame,
   });
-
-  Round get round => game.currentRound;
 
   @override
   Widget build(BuildContext context) {
-    final rondaActual = game.roundNumber;
-    final recetasCompletadas = game.currentRoundIndex;
-    final vidas = game.lives;
-
     return Scaffold(
       backgroundColor: kBackground1,
       body: Stack(
         children: [
-          // Media elipse arriba igual que login
+          // Media elipse arriba
           Positioned(
             top: 0,
             left: 0,
@@ -45,7 +41,7 @@ class CookTransicion extends StatelessWidget {
               ),
             ),
           ),
-          // Texto COCINA2 sobre la elipse igual que login
+          // Texto COCINA2 arriba
           Positioned(
             top: 60,
             left: 0,
@@ -61,12 +57,12 @@ class CookTransicion extends StatelessWidget {
               ),
             ),
           ),
-          // Media elipse abajo invertida
+          // Media elipse abajo
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child:Container(
+            child: Container(
               width: MediaQuery.of(context).size.width,
               height: 150,
               decoration: BoxDecoration(
@@ -78,7 +74,7 @@ class CookTransicion extends StatelessWidget {
               ),
             ),
           ),
-          // Contenido centrado
+          // Contenido principal
           Positioned(
             top: 180,
             left: 0,
@@ -88,31 +84,21 @@ class CookTransicion extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Mensaje destacado
+                  // Mensaje de Game Over
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: kTomate,
+                      color: kText1,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
-                      '¡Es el turno del Cocinero!',
+                      '¡Fuera de la Cocina!',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 26,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Subtítulo
-                  const Text(
-                    'Entrega el celular al Cocinero',
-                    style: TextStyle(
-                      color: kText1,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -120,32 +106,22 @@ class CookTransicion extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _circleInfo('Ronda', '$rondaActual'),
+                      _circleInfo('Ronda', '$ronda'),
                       const SizedBox(width: 40),
-                      _circleInfo('Recetas', '$recetasCompletadas'),
+                      _circleInfo('Recetas', '$recetas'),
                       const SizedBox(width: 40),
                       _circleInfo('Vidas', '$vidas'),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  // Imagen estática de ingredientes
+                  // Imagen bowl con ingredientes de game over
                   Image.asset(
-                    'assets/images/transicion.png',
+                    'assets/images/fin.png',
                     width: 300,
                     fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 30),
-                  // ¿Eres el Cocinero?
-                  const Text(
-                    '¿Eres el Cocinero?',
-                    style: TextStyle(
-                      color: kText1,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Botón grande
+                  // Botón Volver a jugar
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 10),
                     child: SizedBox(
@@ -158,24 +134,61 @@ class CookTransicion extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CookViewOn(
-                                game: game,
-                                clue: clue,
-                                number: number,
+                        onPressed: () async {
+                          // Reinicia el juego con la misma dificultad
+                          if (previousGame != null) {
+                            final newGame = Game(
+                              lives: 3,
+                              difficulty: previousGame!.difficulty,
+                              useCustomWords: previousGame!.useCustomWords,
+                            );
+                            await newGame.startGame();
+                            if (!context.mounted) return;
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ChefViewOn(game: newGame),
                               ),
-                            ),
-                          );
+                            );
+                          }
                         },
                         child: const Text(
-                          'Soy el Cocinero',
+                          'Volver a jugar',
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Botón Salir
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          side: BorderSide(color: kSecondary, width: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const MainMenuScreen()),
+                            (route) => false,
+                          );
+                        },
+                        child: const Text(
+                          'Salir',
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: kSecondary,
                           ),
                         ),
                       ),

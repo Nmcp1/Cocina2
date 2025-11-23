@@ -21,8 +21,8 @@ class WelcomeScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: kBackground1,
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.elliptical(400, 250),
-                  bottomRight: Radius.elliptical(400, 250),
+                  bottomLeft: Radius.elliptical(500, 200),
+                  bottomRight: Radius.elliptical(500, 200),
                 ),
               ),
             ),

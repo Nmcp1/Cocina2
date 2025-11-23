@@ -4,6 +4,85 @@ import 'package:iconify_flutter/icons/bxs.dart';
 import '../constants/theme.dart';
 import '../game_logic.dart';
 import 'chef_transicion.dart';
+import 'game_over.dart';
+
+// Modal para mensajes
+Future<void> showMessageModal(BuildContext context, String message) async {
+  return showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.transparent,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: kBackground1,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: kPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kSecondary,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Aceptar',
+                    style: TextStyle(
+                      color: kBackground1,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: -32,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Material(
+                color: kPrimary,
+                borderRadius: BorderRadius.circular(12),
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
+                  child: Text(
+                    'Mensaje',
+                    style: const TextStyle(
+                      color: kBackground1,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
 class CookViewOn extends StatefulWidget {
   final Game game;
@@ -18,6 +97,7 @@ class CookViewOn extends StatefulWidget {
 
 class _CookViewOnState extends State<CookViewOn> {
   final Set<int> selectedIndices = {};
+  int? lastSelectedIndex; // <-- NUEVO: guarda el último índice seleccionado
   Round get round => widget.game.currentRound;
 
   int _correctThisTurn = 0;
@@ -39,28 +119,7 @@ class _CookViewOnState extends State<CookViewOn> {
     _correctThisTurn = 0;
   }
 
-  void _showGameOverDialog() {
-    _endTurnAndAwardPoints();
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Fin del juego'),
-        content: Text('Te quedaste sin vidas.\nRonda alcanzada: ${widget.game.roundNumber}\nPuntos: ${widget.game.score}'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('Aceptar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleTapOnCard(int index) {
+  Future<void> _handleTapOnCard(int index) async {
     final beforeRoundNumber = widget.game.roundNumber;
     final result = widget.game.chooseCard(index);
 
@@ -71,6 +130,7 @@ class _CookViewOnState extends State<CookViewOn> {
           selectedIndices.add(i);
         }
       }
+      lastSelectedIndex = index; // <-- actualiza el último índice seleccionado
     });
 
     String msg;
@@ -96,13 +156,25 @@ class _CookViewOnState extends State<CookViewOn> {
         break;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    await showMessageModal(context, msg);
 
+    // Navega a Game Over si el juego terminó
     if (widget.game.isGameOver) {
-      _showGameOverDialog();
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => GameOverScreen(
+            ronda: widget.game.roundNumber,
+            recetas: widget.game.currentRoundIndex,
+            vidas: widget.game.lives,
+            previousGame: widget.game,
+          ),
+        ),
+      );
       return;
     }
 
+    // Navega a transición chef si termina el turno
     if (result == SelectionResult.wrongColor ||
         result == SelectionResult.exceededRecipeColor ||
         result == SelectionResult.kOcultas) {
@@ -116,6 +188,7 @@ class _CookViewOnState extends State<CookViewOn> {
       return;
     }
 
+    // Navega a transición chef si cambia la ronda
     if (widget.game.roundNumber > beforeRoundNumber) {
       _endTurnAndAwardPoints();
       Navigator.pushReplacement(
@@ -147,9 +220,30 @@ class _CookViewOnState extends State<CookViewOn> {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: kBackground1, size: 32),
-                      onPressed: () => Navigator.pop(context),
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: kBackground1,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Image.asset(
+                            'assets/images/exit.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   Center(
@@ -173,13 +267,12 @@ class _CookViewOnState extends State<CookViewOn> {
           ),
 
           // FILA de vidas
-           Container(
+          Container(
             color: kBackground1,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, // <-- separa los extremos
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Íconos de ronda alineados a la izquierda
                 Row(
                   children: [
                     _roundIcon(kSecondary, isYellow: true),
@@ -189,7 +282,6 @@ class _CookViewOnState extends State<CookViewOn> {
                     _roundIcon(kSecondary, isYellow: true),
                   ],
                 ),
-                // Contenedor de puntaje alineado a la derecha
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   height: 40,
@@ -288,14 +380,14 @@ class _CookViewOnState extends State<CookViewOn> {
                         Container(
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? kBackground1 // fondo blanco si revelado
-                                : kOcultas,    // fondo ocultas si no revelado
-                            borderRadius: BorderRadius.circular(12),
+                                ? kBackground1
+                                : kOcultas,
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: isSelected
-                                  ? ingredientBorderColor(ingredient.color) // borde según ingrediente si revelado
-                                  : kSecondary, // borde normal si no revelado
-                              width: 3,
+                                  ? ingredientBorderColor(ingredient.color)
+                                  : kSecondary,
+                              width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: Offset(0, 2))
@@ -316,7 +408,8 @@ class _CookViewOnState extends State<CookViewOn> {
                                   ),
                           ),
                         ),
-                        if (isSelected)
+                        // SOLO muestra el círculo rojo en el último seleccionado
+                        if (isSelected && lastSelectedIndex == index)
                           Positioned(
                             top: 6,
                             right: 6,
@@ -354,7 +447,7 @@ class _CookViewOnState extends State<CookViewOn> {
                           alignment: Alignment.centerLeft,
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           decoration: BoxDecoration(color: kBackground2, borderRadius: BorderRadius.circular(5)),
-                          child: Text(widget.clue, style: const TextStyle(color: kText1, fontSize: 18, fontWeight: FontWeight.bold)),
+                          child: Text(widget.clue, style: const TextStyle(color: kText1, fontSize: 20, fontWeight: FontWeight.w500)),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -364,7 +457,7 @@ class _CookViewOnState extends State<CookViewOn> {
                           alignment: Alignment.center,
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           decoration: BoxDecoration(color: kBackground2, borderRadius: BorderRadius.circular(5)),
-                          child: Text(widget.number, style: const TextStyle(color: kText1, fontSize: 18, fontWeight: FontWeight.bold)),
+                          child: Text(widget.number, style: const TextStyle(color: kText1, fontSize: 20, fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ],

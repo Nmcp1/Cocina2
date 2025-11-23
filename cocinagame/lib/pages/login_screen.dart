@@ -28,8 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: BoxDecoration(
                 color: kPrimary,
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.elliptical(400, 250),
-                  bottomRight: Radius.elliptical(400, 250),
+                  bottomLeft: Radius.elliptical(500, 200),
+                  bottomRight: Radius.elliptical(500, 200),
                 ),
               ),
             ),
