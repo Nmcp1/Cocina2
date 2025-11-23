@@ -9,7 +9,7 @@ const Color kText2 = Color(0xFF404040);
 const Color kBackground1 = Color(0xFFFFF8F0);
 const Color kBackground2 = Color(0xFFFFFFFF);
 
-const Color kOcultas = Color(0xFFFFE98D);
+const Color kOcultas = Color(0xFFFFE9BD);
 const Color kNoIngrediente = Color(0xFFC9ADA7);
 
 const Color kBeterraga = Color(0xFFE75480);
@@ -18,13 +18,3 @@ const Color kChampinon = Color(0xFF8D6E63);
 const Color kPimenton = Color(0xFF2E7D32);
 const Color kTomate = Color(0xFFD62828);
 const Color kZanahoria = Color(0xFFF77F00);
-
-// Íconos Noto como string
-const String kBowl = "noto:bowl-with-spoon";
-const String kCarrot = "noto:carrot";
-const String kTomato = "noto:tomato";
-const String kOnion = "noto:onion";
-const String kMushroom = "noto:brown-mushroom";
-const String kRootVegetable = "noto:root-vegetable";
-const String kBomb = "noto:bomb";
-const String kBellPepper = "noto:bell-pepper";

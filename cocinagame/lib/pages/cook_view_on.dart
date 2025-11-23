@@ -17,37 +17,30 @@ class CookViewOn extends StatefulWidget {
 }
 
 class _CookViewOnState extends State<CookViewOn> {
-  // Mantiene el estado de selección de cada palabra
   final Set<int> selectedIndices = {};
   Round get round => widget.game.currentRound;
 
-  // ⭐ NUEVO: Aciertos por turno
   int _correctThisTurn = 0;
 
-  // ⭐ NUEVO: Cálculo de puntuación por turno
   int _calculatePointsForCorrect(int n) {
     if (n <= 0) return 0;
     if (n == 1) return 1;
-    return 5 * (n - 1); // 2→5, 3→10, 4→15, etc.
+    return 5 * (n - 1);
   }
 
-  // ⭐ NUEVO: Sumar puntos, mostrar mensaje y reiniciar turno
   void _endTurnAndAwardPoints() {
     final points = _calculatePointsForCorrect(_correctThisTurn);
     if (points > 0) {
       widget.game.score += points;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ganaste $points puntos este turno. Puntaje total: ${widget.game.score}')),
       );
     }
-
-    _correctThisTurn = 0; // reiniciar turno
+    _correctThisTurn = 0;
   }
-  // ------------------------------------------------------------
 
   void _showGameOverDialog() {
-    _endTurnAndAwardPoints(); // ⭐ NUEVO
+    _endTurnAndAwardPoints();
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -84,7 +77,7 @@ class _CookViewOnState extends State<CookViewOn> {
     switch (result) {
       case SelectionResult.correct:
         msg = '¡Correcto! Esta palabra era de la receta.';
-        _correctThisTurn++; // ⭐ NUEVO
+        _correctThisTurn++;
         break;
       case SelectionResult.kOcultas:
         msg = 'Carta neutra, pierdes el turno.';
@@ -105,13 +98,11 @@ class _CookViewOnState extends State<CookViewOn> {
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
-    // Si el juego terminó
     if (widget.game.isGameOver) {
       _showGameOverDialog();
       return;
     }
 
-    // ⭐ NUEVO: Termina turno por error, exceso o carta neutra
     if (result == SelectionResult.wrongColor ||
         result == SelectionResult.exceededRecipeColor ||
         result == SelectionResult.kOcultas) {
@@ -125,7 +116,6 @@ class _CookViewOnState extends State<CookViewOn> {
       return;
     }
 
-    // ⭐ NUEVO: Receta completada
     if (widget.game.roundNumber > beforeRoundNumber) {
       _endTurnAndAwardPoints();
       Navigator.pushReplacement(
@@ -136,38 +126,30 @@ class _CookViewOnState extends State<CookViewOn> {
       );
       return;
     }
-
-    // Caso correcto parcial → turno continúa
   }
 
   @override
   Widget build(BuildContext context) {
+    final board = round.board;
+
     return Scaffold(
       backgroundColor: kBackground1,
       body: Column(
         children: [
-          // HEADER (no modificado)
+          // HEADER con botón regresar, texto y puntaje alineado a la derecha
           Container(
             color: kPrimary,
-            padding: const EdgeInsets.only(top: 60, left: 16, right: 16, bottom: 12),
+            padding: const EdgeInsets.only(top: 55, left: 16, right: 16, bottom: 10),
             child: SizedBox(
-              height: 40,
+              height: 60,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text.rich(
-                      TextSpan(
-                        text: 'Ronda ',
-                        style: const TextStyle(color: kBackground1, fontSize: 18),
-                        children: [
-                          TextSpan(
-                            text: '${widget.game.roundNumber}',
-                            style: const TextStyle(color: kBackground1, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: kBackground1, size: 32),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                   Center(
@@ -176,6 +158,7 @@ class _CookViewOnState extends State<CookViewOn> {
                         backgroundColor: kSecondary,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
                       ),
                       onPressed: () {},
                       child: const Text(
@@ -189,8 +172,57 @@ class _CookViewOnState extends State<CookViewOn> {
             ),
           ),
 
-          // RESTO DEL CÓDIGO SIN CAMBIOS...
+          // FILA de vidas
+           Container(
+            color: kBackground1,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween, // <-- separa los extremos
+              children: [
+                // Íconos de ronda alineados a la izquierda
+                Row(
+                  children: [
+                    _roundIcon(kSecondary, isYellow: true),
+                    const SizedBox(width: 10),
+                    _roundIcon(kSecondary, isYellow: true),
+                    const SizedBox(width: 10),
+                    _roundIcon(kSecondary, isYellow: true),
+                  ],
+                ),
+                // Contenedor de puntaje alineado a la derecha
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: kCebolla,
+                    borderRadius: BorderRadius.circular(50),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${widget.game.score} PUNTOS', // <-- muestra el puntaje
+                      style: const TextStyle(
+                        color: kBackground1,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
+          // Receta
+          _buildRecipeSummary(),
+
+          // Grid de palabras con imágenes reveladas
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -207,25 +239,81 @@ class _CookViewOnState extends State<CookViewOn> {
                   final ingredient = round.board[index];
                   final isSelected = ingredient.revealed;
 
+                  String imageName(IngredientColor c) {
+                    switch (c) {
+                      case IngredientColor.kBeterraga:
+                        return 'betarraga.png';
+                      case IngredientColor.kCebolla:
+                        return 'cebolla.png';
+                      case IngredientColor.kChampinon:
+                        return 'champiñon.png';
+                      case IngredientColor.kPimenton:
+                        return 'pimenton.png';
+                      case IngredientColor.kTomate:
+                        return 'tomate.png';
+                      case IngredientColor.kZanahoria:
+                        return 'zanahoria.png';
+                      case IngredientColor.kOcultas:
+                        return 'plato.png';
+                      case IngredientColor.black:
+                        return 'bomba.png';
+                    }
+                  }
+
+                  Color ingredientBorderColor(IngredientColor c) {
+                    switch (c) {
+                      case IngredientColor.kBeterraga:
+                        return kBeterraga;
+                      case IngredientColor.kCebolla:
+                        return kCebolla;
+                      case IngredientColor.kChampinon:
+                        return kChampinon;
+                      case IngredientColor.kPimenton:
+                        return kPimenton;
+                      case IngredientColor.kTomate:
+                        return kTomate;
+                      case IngredientColor.kZanahoria:
+                        return kZanahoria;
+                      case IngredientColor.kOcultas:
+                        return kOcultas;
+                      case IngredientColor.black:
+                        return Colors.black87;
+                    }
+                  }
+
                   return GestureDetector(
                     onTap: () => _handleTapOnCard(index),
                     child: Stack(
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: kOcultas,
+                            color: isSelected
+                                ? kBackground1 // fondo blanco si revelado
+                                : kOcultas,    // fondo ocultas si no revelado
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: kSecondary, width: 2),
+                            border: Border.all(
+                              color: isSelected
+                                  ? ingredientBorderColor(ingredient.color) // borde según ingrediente si revelado
+                                  : kSecondary, // borde normal si no revelado
+                              width: 3,
+                            ),
                             boxShadow: [
                               BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: Offset(0, 2))
                             ],
                           ),
                           child: Center(
-                            child: Text(
-                              ingredient.name,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 18),
-                            ),
+                            child: isSelected
+                                ? Image.asset(
+                                    'assets/images/${imageName(ingredient.color)}',
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.contain,
+                                  )
+                                : Text(
+                                    ingredient.name,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 18),
+                                  ),
                           ),
                         ),
                         if (isSelected)
@@ -289,7 +377,7 @@ class _CookViewOnState extends State<CookViewOn> {
                     icon: const Icon(Icons.arrow_forward, color: Colors.white),
                     onPressed: () {
                       widget.game.cookStops();
-                      _endTurnAndAwardPoints(); // ⭐ NUEVO
+                      _endTurnAndAwardPoints();
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
@@ -307,19 +395,146 @@ class _CookViewOnState extends State<CookViewOn> {
     );
   }
 
-  Widget _roundIcon(Color color,
-      {bool isYellow = false, double circleSize = 45, double iconSize = 32}) {
+  Widget _buildRecipeSummary() {
+    final required = round.recipe.required;
+    if (required.isEmpty) return const SizedBox.shrink();
+
+    String imageName(IngredientColor c) {
+      switch (c) {
+        case IngredientColor.kBeterraga:
+          return 'betarraga.png';
+        case IngredientColor.kCebolla:
+          return 'cebolla.png';
+        case IngredientColor.kChampinon:
+          return 'champiñon.png';
+        case IngredientColor.kPimenton:
+          return 'pimenton.png';
+        case IngredientColor.kTomate:
+          return 'tomate.png';
+        case IngredientColor.kZanahoria:
+          return 'zanahoria.png';
+        case IngredientColor.kOcultas:
+          return 'plato.png';
+        case IngredientColor.black:
+          return 'bomba.png';
+      }
+    }
+
+    final entries = required.entries.toList();
+    final difficulty = widget.game.difficulty;
+
+    List<List<MapEntry<IngredientColor, int>>> rows;
+
+    if (difficulty == Difficulty.hard && entries.length > 3) {
+      rows = [
+        entries.sublist(0, 3),
+        entries.sublist(3),
+      ];
+    } else {
+      rows = [entries];
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: rows.map((rowEntries) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: rowEntries.map((entry) {
+              final color = entry.key;
+              final count = entry.value;
+              final img = imageName(color);
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _ingredientBgColor(color),
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'assets/images/$img',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'x$count',
+                      style: const TextStyle(
+                        color: kBackground1,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Color _ingredientBgColor(IngredientColor c) {
+    switch (c) {
+      case IngredientColor.kBeterraga:
+        return kBeterraga;
+      case IngredientColor.kCebolla:
+        return kCebolla;
+      case IngredientColor.kChampinon:
+        return kChampinon;
+      case IngredientColor.kPimenton:
+        return kPimenton;
+      case IngredientColor.kTomate:
+        return kTomate;
+      case IngredientColor.kOcultas:
+        return kOcultas;
+      case IngredientColor.kZanahoria:
+        return kZanahoria;
+      case IngredientColor.black:
+        return Colors.black87;
+    }
+  }
+
+  Widget _roundIcon(Color color, {bool isYellow = false, double circleSize = 40, double iconSize = 28}) {
     return Container(
       width: circleSize,
       height: circleSize,
       decoration: BoxDecoration(
         color: isYellow ? kSecondary : kBackground2,
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 2))],
       ),
       child: Center(
         child: Iconify(Bxs.book_heart, color: isYellow ? kBackground2 : kSecondary, size: iconSize),
       ),
     );
+  }
+
+  String _imageName(IngredientColor c) {
+    switch (c) {
+      case IngredientColor.kBeterraga:
+        return 'betarraga.png';
+      case IngredientColor.kCebolla:
+        return 'cebolla.png';
+      case IngredientColor.kChampinon:
+        return 'champiñon.png';
+      case IngredientColor.kPimenton:
+        return 'pimenton.png';
+      case IngredientColor.kTomate:
+        return 'tomate.png';
+      case IngredientColor.kZanahoria:
+        return 'zanahoria.png';
+      case IngredientColor.kOcultas:
+        return 'plato.png';
+      case IngredientColor.black:
+        return 'bomba.png';
+    }
   }
 }

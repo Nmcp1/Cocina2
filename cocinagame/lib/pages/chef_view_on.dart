@@ -156,26 +156,80 @@ class _ChefViewOnState extends State<ChefViewOn> {
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: 2.2),
                 itemBuilder: (context, index) {
                   final ingredient = board[index];
+                  final bool isRevealed = ingredient.revealed;
                   final IngredientColor ingColor = ingredient.color;
 
-                  final bool hideColors = _showOcultas;
-                  final Color bgColor = hideColors ? kBackground2 : _ingredientBgColor(ingColor);
-                  final Color textColor = hideColors ? kText1 : (ingColor == IngredientColor.kOcultas ? kText1 : kBackground2);
-                  final Color borderColor = hideColors ? kSecondary : Colors.transparent;
+                  String imageName(IngredientColor c) {
+                    switch (c) {
+                      case IngredientColor.kBeterraga:
+                        return 'betarraga.png';
+                      case IngredientColor.kCebolla:
+                        return 'cebolla.png';
+                      case IngredientColor.kChampinon:
+                        return 'champiñon.png';
+                      case IngredientColor.kPimenton:
+                        return 'pimenton.png';
+                      case IngredientColor.kTomate:
+                        return 'tomate.png';
+                      case IngredientColor.kZanahoria:
+                        return 'zanahoria.png';
+                      case IngredientColor.kOcultas:
+                        return 'plato.png';
+                      case IngredientColor.black:
+                        return 'bomba.png';
+                    }
+                  }
+
+                  Color ingredientBgColor(IngredientColor c) {
+                    switch (c) {
+                      case IngredientColor.kBeterraga:
+                        return kBeterraga;
+                      case IngredientColor.kCebolla:
+                        return kCebolla;
+                      case IngredientColor.kChampinon:
+                        return kChampinon;
+                      case IngredientColor.kPimenton:
+                        return kPimenton;
+                      case IngredientColor.kTomate:
+                        return kTomate;
+                      case IngredientColor.kZanahoria:
+                        return kZanahoria;
+                      case IngredientColor.kOcultas:
+                        return kOcultas;
+                      case IngredientColor.black:
+                        return Colors.black87;
+                    }
+                  }
 
                   return Container(
                     decoration: BoxDecoration(
-                      color: bgColor,
+                      color: isRevealed ? kBackground1 : ingredientBgColor(ingredient.color),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: borderColor, width: 2),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 2))],
+                      border: Border.all(
+                        color: isRevealed ? ingredientBgColor(ingredient.color) : ingredientBgColor(ingredient.color),
+                        width: 3,
+                      ),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 2))
+                      ],
                     ),
                     child: Center(
-                      child: Text(
-                        ingredient.name,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
-                      ),
+                      child: isRevealed
+                          ? Image.asset(
+                              'assets/images/${imageName(ingredient.color)}',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                            )
+                          : Text(
+                              ingredient.name,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: kBackground1,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
                     ),
                   );
                 },
@@ -400,5 +454,26 @@ class _ChefViewOnState extends State<ChefViewOn> {
         child: Iconify(Bxs.book_heart, color: isYellow ? kBackground2 : kSecondary, size: iconSize),
       ),
     );
+  }
+
+  String _imageName(IngredientColor c) {
+    switch (c) {
+      case IngredientColor.kBeterraga:
+        return 'betarraga.png';
+      case IngredientColor.kCebolla:
+        return 'cebolla.png';
+      case IngredientColor.kChampinon:
+        return 'champiñon.png';
+      case IngredientColor.kPimenton:
+        return 'pimenton.png';
+      case IngredientColor.kTomate:
+        return 'tomate.png';
+      case IngredientColor.kZanahoria:
+        return 'zanahoria.png';
+      case IngredientColor.kOcultas:
+        return 'plato.png';
+      case IngredientColor.black:
+        return 'bomba.png';
+    }
   }
 }
