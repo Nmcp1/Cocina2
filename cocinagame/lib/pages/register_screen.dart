@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../constants/theme.dart';
+import 'package:cocinagame/constants/theme.dart';
+import 'package:cocinagame/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,13 +13,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmController = TextEditingController();
+
+  bool _loading = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackground1,
       body: Stack(
         children: [
-          // Media elipse arriba
+          // MEDIA ELIPSE SUPERIOR
           Positioned(
             top: 0,
             left: 0,
@@ -29,15 +36,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
               decoration: BoxDecoration(
                 color: kPrimary,
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.elliptical(500, 200),
-                  bottomRight: Radius.elliptical(500, 200),
+                  bottomLeft: Radius.elliptical(400, 250),
+                  bottomRight: Radius.elliptical(400, 250),
                 ),
               ),
             ),
           ),
-          // Texto COCINA2 sobre la elipse
+
+          // TÍTULO SUPERIOR
           Positioned(
-            top: 60,
+            top: 65,
             left: 0,
             right: 0,
             child: Center(
@@ -51,7 +59,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ),
-          // Contenido centrado
+
+          // CONTENIDO PRINCIPAL
           Positioned(
             top: 180,
             left: 0,
@@ -61,63 +70,86 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // LOGO CIRCULAR
                   ClipOval(
                     child: SizedBox(
-                      width: 200,
-                      height: 200,
+                      width: 180,
+                      height: 180,
                       child: Image.asset(
                         'assets/images/logo_cocina2.png',
                         fit: BoxFit.cover,
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 20),
+
                   const Text(
-                    'Crear una cuenta',
+                    "Crear Cuenta",
                     style: TextStyle(
-                      fontSize: 32,
-                      color: kText1,
+                      fontSize: 36,
                       fontWeight: FontWeight.bold,
+                      color: kText1,
                     ),
                   ),
+
                   const SizedBox(height: 40),
-                  // Usuario
+
+                  // EMAIL
                   TextField(
+                    controller: _emailController,
                     decoration: InputDecoration(
-                      labelText: 'Usuario',
+                      labelText: "Correo electrónico",
                       labelStyle: const TextStyle(color: kPrimary),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: kPrimary, width: 2),
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: kPrimary,
+                          width: 2,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: kPrimary, width: 2),
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: kPrimary,
+                          width: 2,
+                        ),
                       ),
                       fillColor: kBackground2,
                       filled: true,
                     ),
                   ),
+
                   const SizedBox(height: 30),
-                  // Contraseña
+
+                  // CONTRASEÑA
                   TextField(
+                    controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
-                      labelText: 'Contraseña',
+                      labelText: "Contraseña",
                       labelStyle: const TextStyle(color: kPrimary),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: kPrimary, width: 2),
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: kPrimary,
+                          width: 2,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: kPrimary, width: 2),
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: kPrimary,
+                          width: 2,
+                        ),
                       ),
                       fillColor: kBackground2,
                       filled: true,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: kPrimary,
                         ),
                         onPressed: () {
@@ -128,26 +160,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 30),
-                  // Confirmar contraseña
+
+                  // CONFIRMAR CONTRASEÑA
                   TextField(
+                    controller: _confirmController,
                     obscureText: _obscureConfirm,
                     decoration: InputDecoration(
-                      labelText: 'Confirmar contraseña',
+                      labelText: "Confirmar contraseña",
                       labelStyle: const TextStyle(color: kPrimary),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: kPrimary, width: 2),
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: kPrimary,
+                          width: 2,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: kPrimary, width: 2),
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: kPrimary,
+                          width: 2,
+                        ),
                       ),
                       fillColor: kBackground2,
                       filled: true,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                          _obscureConfirm
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: kPrimary,
                         ),
                         onPressed: () {
@@ -158,7 +201,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 40),
+
+                  // BOTÓN REGISTRAR
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kSecondary,
@@ -168,35 +214,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () {
-                      // Acción de registrarse
-                    },
-                    child: const Text(
-                      'Registrarse',
-                      style: TextStyle(fontSize: 24, color: kBackground2, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/login'),
-                    child: Text.rich(
-                      TextSpan(
-                        text: '¿Ya tiene una cuenta? ',
-                        style: const TextStyle(
-                          color: kText1,
-                          fontWeight: FontWeight.normal,
-                          fontSize: 18,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: 'Iniciar sesión',
-                            style: const TextStyle(
-                              color: kText1,
+                    onPressed: _loading ? null : _registerUser,
+                    child: _loading
+                        ? const CircularProgressIndicator(
+                            color: kBackground1,
+                          )
+                        : const Text(
+                            "Crear Cuenta",
+                            style: TextStyle(
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              fontSize: 18,
+                              color: kBackground1,
                             ),
                           ),
-                        ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // BOTÓN LOGIN
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/login');
+                    },
+                    child: const Text(
+                      "¿Ya tienes cuenta? Inicia sesión",
+                      style: TextStyle(
+                        color: kText1,
+                        fontSize: 18,
                       ),
                     ),
                   ),
@@ -206,6 +250,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _registerUser() async {
+    final email = _emailController.text.trim();
+    final pass = _passwordController.text.trim();
+    final confirm = _confirmController.text.trim();
+
+    if (email.isEmpty || pass.isEmpty || confirm.isEmpty) {
+      _showMessage("Completa todos los campos");
+      return;
+    }
+
+    if (pass != confirm) {
+      _showMessage("Las contraseñas no coinciden");
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      await AuthService().register(email, pass);
+      // main.dart detectará el login y redirigirá automáticamente
+    } catch (e) {
+      _showMessage("Error: ${e.toString()}");
+    }
+
+    setState(() => _loading = false);
+  }
+
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
     );
   }
 }

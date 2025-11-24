@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:iconify_flutter/iconify_flutter.dart';
 import 'package:iconify_flutter/icons/bxs.dart';
 import 'package:iconify_flutter/icons/mdi.dart';
-import '../constants/theme.dart';
-import '../game_logic.dart';
-import 'cook_transicion.dart';
+import 'package:cocinagame/constants/theme.dart';
+import 'package:cocinagame/game_logic.dart';
+import 'package:cocinagame/pages/cook_transicion.dart';
 
 class ChefViewOn extends StatefulWidget {
   final Game game;
@@ -17,7 +17,9 @@ class ChefViewOn extends StatefulWidget {
 }
 
 class _ChefViewOnState extends State<ChefViewOn> {
-  bool _showOcultas = false;
+  bool _showOcultas = false; // true = ocultar colores (no las palabras)
+  String _clue = '';
+  String _number = '';
   final TextEditingController _clueController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
 
@@ -46,30 +48,9 @@ class _ChefViewOnState extends State<ChefViewOn> {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: kBackground1,
-                          borderRadius: BorderRadius.circular(12), // cuadrado redondeado
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: Image.asset(
-                            'assets/images/exit.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: kBackground1, size: 32),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                   Center(
@@ -117,47 +98,66 @@ class _ChefViewOnState extends State<ChefViewOn> {
             ),
           ),
 
-          // FILA 2
+          // FILA 2 (iconos, timer, etc) — igual que lo tenías
           Container(
             color: kBackground1,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, // <-- separa los extremos
               children: [
-                // Íconos de ronda alineados a la izquierda
-                Row(
-                  children: [
-                    _roundIcon(kSecondary, isYellow: true),
-                    const SizedBox(width: 10),
-                    _roundIcon(kSecondary, isYellow: true),
-                    const SizedBox(width: 10),
-                    _roundIcon(kSecondary, isYellow: true),
-                  ],
-                ),
-                // Contenedor de puntaje alineado a la derecha
+                _roundIcon(kSecondary, isYellow: true),
+                const SizedBox(width: 10),
+                _roundIcon(kSecondary, isYellow: true),
+                const SizedBox(width: 10),
+                _roundIcon(kSecondary, isYellow: true),
+                const SizedBox(width: 22),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(color: kCebolla, borderRadius: BorderRadius.circular(16)),
+                  child: const Text(
+                    '05:00',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                const SizedBox(width: 36),
+                Container(
+                  width: 48,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: kCebolla,
-                    borderRadius: BorderRadius.circular(50),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.10),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+                    color: kBackground2,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 4, offset: const Offset(0, 2))],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Iconify(kBowl, size: 32, color: kPrimary),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${widget.game.currentRoundIndex}',
+                        style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ],
                   ),
-                  child: Center(
-                    child: Text(
-                      '${widget.game.score} PUNTOS', // <-- muestra el puntaje
-                      style: const TextStyle(
-                        color: kBackground1,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 48,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: kBackground2,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 4, offset: const Offset(0, 2))],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.track_changes, color: kSecondary, size: 22),
+                      SizedBox(width: 2),
+                      Text(
+                        '${widget.game.roundNumber}', // Aquí se utiliza el número de ronda dinámicamente
+                        style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],
@@ -177,82 +177,26 @@ class _ChefViewOnState extends State<ChefViewOn> {
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: 2.2),
                 itemBuilder: (context, index) {
                   final ingredient = board[index];
-                  final bool isRevealed = ingredient.revealed;
                   final IngredientColor ingColor = ingredient.color;
 
-                  String imageName(IngredientColor c) {
-                    switch (c) {
-                      case IngredientColor.kBeterraga:
-                        return 'betarraga.png';
-                      case IngredientColor.kCebolla:
-                        return 'cebolla.png';
-                      case IngredientColor.kChampinon:
-                        return 'champiñon.png';
-                      case IngredientColor.kPimenton:
-                        return 'pimenton.png';
-                      case IngredientColor.kTomate:
-                        return 'tomate.png';
-                      case IngredientColor.kZanahoria:
-                        return 'zanahoria.png';
-                      case IngredientColor.kOcultas:
-                        return 'plato.png';
-                      case IngredientColor.black:
-                        return 'bomba.png';
-                    }
-                  }
-
-                  Color ingredientBgColor(IngredientColor c) {
-                    switch (c) {
-                      case IngredientColor.kBeterraga:
-                        return kBeterraga;
-                      case IngredientColor.kCebolla:
-                        return kCebolla;
-                      case IngredientColor.kChampinon:
-                        return kChampinon;
-                      case IngredientColor.kPimenton:
-                        return kPimenton;
-                      case IngredientColor.kTomate:
-                        return kTomate;
-                      case IngredientColor.kZanahoria:
-                        return kZanahoria;
-                      case IngredientColor.kOcultas:
-                        return kOcultas;
-                      case IngredientColor.black:
-                        return Colors.black87;
-                    }
-                  }
+                  final bool hideColors = _showOcultas;
+                  final Color bgColor = hideColors ? kBackground2 : _ingredientBgColor(ingColor);
+                  final Color textColor = hideColors ? kText1 : (ingColor == IngredientColor.kOcultas ? kText1 : kBackground2);
+                  final Color borderColor = hideColors ? kSecondary : Colors.transparent;
 
                   return Container(
                     decoration: BoxDecoration(
-                      color: isRevealed ? kBackground1 : ingredientBgColor(ingredient.color),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isRevealed
-                            ? ingredientBgColor(ingredient.color)
-                            : (ingredient.color == IngredientColor.kOcultas ? kSecondary : ingredientBgColor(ingredient.color)),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 2))
-                      ],
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor, width: 2),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 2))],
                     ),
                     child: Center(
-                      child: isRevealed
-                          ? Image.asset(
-                              'assets/images/${imageName(ingredient.color)}',
-                              width: 40,
-                              height: 40,
-                              fit: BoxFit.contain,
-                            )
-                          : Text(
-                              ingredient.name,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: ingredient.color == IngredientColor.kOcultas ? kText1 : kBackground1,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
+                      child: Text(
+                        ingredient.name,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
                     ),
                   );
                 },
@@ -282,11 +226,6 @@ class _ChefViewOnState extends State<ChefViewOn> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(5), borderSide: BorderSide.none),
                           ),
-                          style: const TextStyle(
-                            color: kText1,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500, // medium
-                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -304,11 +243,6 @@ class _ChefViewOnState extends State<ChefViewOn> {
                           ),
                           keyboardType: TextInputType.number,
                           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          style: const TextStyle(
-                            color: kText1,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500, // medium
-                          ),
                         ),
                       ),
                     ],
@@ -353,6 +287,7 @@ class _ChefViewOnState extends State<ChefViewOn> {
                         ),
                       );
                     },
+
                   ),
                 ),
               ],
@@ -369,85 +304,55 @@ class _ChefViewOnState extends State<ChefViewOn> {
     final required = round.recipe.required;
     if (required.isEmpty) return const SizedBox.shrink();
 
-    String imageName(IngredientColor c) {
+    String colorName(IngredientColor c) {
       switch (c) {
         case IngredientColor.kBeterraga:
-          return 'betarraga.png';
+          return 'Betarraga';
         case IngredientColor.kCebolla:
-          return 'cebolla.png';
+          return 'Cebolla';
         case IngredientColor.kChampinon:
-          return 'champiñon.png';
+          return 'Champinon';
         case IngredientColor.kPimenton:
-          return 'pimenton.png';
+          return 'Pimenton';
         case IngredientColor.kTomate:
-          return 'tomate.png';
-        case IngredientColor.kZanahoria:
-          return 'zanahoria.png';
+          return 'Tomate';
         case IngredientColor.kOcultas:
-          return 'plato.png';
+          return 'Neutro';
+        case IngredientColor.kZanahoria:
+          return "Zanahoria";
         case IngredientColor.black:
-          return 'bomba.png';
+          return 'Negro';
       }
     }
 
-    final entries = required.entries.toList();
-    final difficulty = widget.game.difficulty;
-
-    List<List<MapEntry<IngredientColor, int>>> rows;
-
-    if (difficulty == Difficulty.hard && entries.length > 3) {
-      // Tres arriba, el resto abajo
-      rows = [
-        entries.sublist(0, 3),
-        entries.sublist(3),
-      ];
-    } else {
-      rows = [entries];
-    }
-
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: rows.map((rowEntries) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: rowEntries.map((entry) {
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Receta de esta ronda:',
+            style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: required.entries.map((entry) {
               final color = entry.key;
               final count = entry.value;
-              final img = imageName(color);
+              final bg = _ingredientBgColor(color);
 
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _ingredientBgColor(color),
-                  borderRadius: BorderRadius.circular(50),
+              return Chip(
+                label: Text(
+                  '${colorName(color)} x$count',
+                  style: TextStyle(color: color == IngredientColor.kOcultas ? kText1 : kBackground2, fontWeight: FontWeight.w600),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(
-                      'assets/images/$img',
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'x$count',
-                      style: const TextStyle(
-                        color: kBackground1,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
+                backgroundColor: bg,
               );
             }).toList(),
-          );
-        }).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -486,26 +391,5 @@ class _ChefViewOnState extends State<ChefViewOn> {
         child: Iconify(Bxs.book_heart, color: isYellow ? kBackground2 : kSecondary, size: iconSize),
       ),
     );
-  }
-
-  String _imageName(IngredientColor c) {
-    switch (c) {
-      case IngredientColor.kBeterraga:
-        return 'betarraga.png';
-      case IngredientColor.kCebolla:
-        return 'cebolla.png';
-      case IngredientColor.kChampinon:
-        return 'champiñon.png';
-      case IngredientColor.kPimenton:
-        return 'pimenton.png';
-      case IngredientColor.kTomate:
-        return 'tomate.png';
-      case IngredientColor.kZanahoria:
-        return 'zanahoria.png';
-      case IngredientColor.kOcultas:
-        return 'plato.png';
-      case IngredientColor.black:
-        return 'bomba.png';
-    }
   }
 }
