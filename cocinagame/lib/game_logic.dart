@@ -1,20 +1,12 @@
-// game_logic.dart
 import 'dart:math';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// =============================
 /// Enums y modelos base
 /// =============================
-
-// const Color kBeterraga = Color(0xFFE75480)
-// const Color kCebolla = Color(0xFF9B5DE5)
-// const Color kChampinon = Color(0xFF8D6E63);
-// const Color kPimenton = Color(0xFF2E7D32);
-// const Color kTomate = Color(0xFFD62828);
-// const Color kZanahoria = Color(0xFFF77F00);
-// const Color kOcultas = Color(0xFFFFE98D);
-// const Color kNoIngrediente = Color(0xFFC9ADA7);
 
 enum IngredientColor { kBeterraga, kCebolla, kChampinon, kPimenton, kTomate, kZanahoria, kOcultas, black }
 
@@ -22,7 +14,6 @@ enum Difficulty { easy, medium, hard }
 
 enum SelectionResult { correct, exceededRecipeColor, kOcultas, wrongColor, black, alreadySelected }
 
-/// Ingrediente en el tablero
 class Ingredient {
   final String name;
   final IngredientColor color;
@@ -31,12 +22,10 @@ class Ingredient {
   Ingredient(this.name, this.color);
 }
 
-/// Representa la receta actual
 class Recipe {
   final Map<IngredientColor, int> required;
 
   Recipe(this.required) {
-    // Limpia entradas inválidas
     required.removeWhere((_, v) => v <= 0);
   }
 
@@ -58,27 +47,25 @@ class Recipe {
   }
 }
 
-/// Pista del chef
 class Clue {
   final String word;
-  final int quantity; // reservado por si luego limitas selecciones
+  final int quantity;
 
   Clue(this.word, this.quantity) : assert(quantity >= 1);
 }
 
-/// Palabras fallback
 enum Palabras { manzana, bicicleta, elefante, montana, guitarra, ventana, libro, reloj, playa, estrella, nube, perro, balon, arbol, ciudad, fuego, luna, camisa, flor, rio, tren, zapato, mariposa, carro, gato, mar }
 
 /// =============================
-/// WordBank con recarga automática
+/// WordBank
 /// =============================
 class WordBank {
   WordBank._();
   static final WordBank instance = WordBank._();
 
-  final Set<String> _used = {}; // Palabras ya usadas
-  final List<String> _pool = []; // Pool de palabras disponibles
-  final List<String> _base = []; // Snapshot de las palabras base
+  final Set<String> _used = {};
+  final List<String> _pool = [];
+  final List<String> _base = [];
   bool _fetchedOnce = false;
   int _fallbackCounter = 1;
   final Random _rnd = Random();
@@ -93,15 +80,12 @@ class WordBank {
 
   void _refillPool() {
     _ensureBase();
-    // Limpia las palabras usadas y recarga el pool
-    _used.clear(); // Limpia todas las palabras usadas
-
+    _used.clear();
     final candidates = List<String>.from(_base);
     candidates.shuffle(_rnd);
-
     _pool
       ..clear()
-      ..addAll(candidates); // Recarga el pool con todas las palabras base
+      ..addAll(candidates);
   }
 
   Future<void> tryFetchOnce() async {
@@ -137,35 +121,31 @@ class WordBank {
         ..clear()
         ..addAll(normalized);
     } else {
-      _ensureBase(); // Si no se obtiene de la API, usa las palabras locales
+      _ensureBase();
     }
 
-    _refillPool(); // Recarga el pool con las palabras obtenidas
+    _refillPool();
   }
 
   String nextWord() {
-    if (_pool.isEmpty) {
-      _refillPool();
-    }
+    if (_pool.isEmpty) _refillPool();
     while (_pool.isNotEmpty) {
-      final w = _pool.removeAt(0); // Toma la primera palabra del pool
-      _used.add(w); // Marca la palabra como usada
+      final w = _pool.removeAt(0);
+      _used.add(w);
       return w;
     }
-    // Defensa final: si no hay palabras disponibles, genera una palabra por defecto
     return 'ingrediente_${_fallbackCounter++}';
   }
 
   void reset() {
-    _used.clear(); // Limpia las palabras usadas
-    _pool.clear(); // Limpia el pool de palabras
+    _used.clear();
+    _pool.clear();
     _fallbackCounter = 1;
-    // _base se mantiene igual; es el conjunto de palabras originales
   }
 }
 
 /// =============================
-/// Ronda
+/// Round
 /// =============================
 class Round {
   final int number;
@@ -181,14 +161,15 @@ class Round {
   final Random _rnd;
   final List<SelectionResult> _currentSelections = [];
 
-  Round({required this.number, required this.board, required this.difficulty, Random? rnd}) : _rnd = rnd ?? Random() {
+  Round({required this.number, required this.board, required this.difficulty, Random? rnd})
+      : _rnd = rnd ?? Random() {
     recipe = _generateRecipeForBoard();
   }
 
   void giveClue(Clue clue) {
     if (finished) return;
     activeClue = clue;
-    isChefTurn = false; // turno del cocinero
+    isChefTurn = false;
     _currentSelections.clear();
   }
 
@@ -205,22 +186,14 @@ class Round {
     return res;
   }
 
-  /// Plantarse: vuelve turno al Chef. Solo cierra la ronda si ya quedó completa.
   void cookStops() {
     if (isChefTurn || finished) return;
-
-    if (recipe.isCompleted) {
-      finished = true;
-    }
-
+    if (recipe.isCompleted) finished = true;
     activeClue = null;
     isChefTurn = true;
     _currentSelections.clear();
   }
 
-  /// Receta consistente con tablero
-  /// - Easy: hasta 2 colores; total mínimo 5
-  /// - Medium/Hard: más colores, total mínimo 5
   Recipe _generateRecipeForBoard() {
     final boardCount = <IngredientColor, int>{};
     for (final ing in board) {
@@ -233,7 +206,7 @@ class Round {
 
     switch (difficulty) {
       case Difficulty.easy:
-        maxDistinct = 2; // receta con 1..2 colores
+        maxDistinct = 2;
         break;
       case Difficulty.medium:
         maxDistinct = 4;
@@ -245,12 +218,10 @@ class Round {
 
     final availableColors = boardCount.keys.toList()..shuffle(_rnd);
     final distinct = availableColors.isEmpty ? 1 : min(maxDistinct, availableColors.length);
-
     final chosenColors = availableColors.take(distinct).toList();
     final req = <IngredientColor, int>{};
     int remaining = minTotalRequired;
 
-    // al menos 1 por color elegido (si hay disponibilidad)
     for (final color in chosenColors) {
       final avail = boardCount[color] ?? 0;
       if (avail <= 0) continue;
@@ -259,7 +230,6 @@ class Round {
       if (remaining <= 0) break;
     }
 
-    // reparte resto sin pasar disponibilidad
     while (remaining > 0 && chosenColors.isNotEmpty) {
       bool added = false;
       for (final color in chosenColors) {
@@ -275,9 +245,10 @@ class Round {
       if (!added) break;
     }
 
-    // Garantiza una receta válida
     if (req.isEmpty && boardCount.isNotEmpty) {
-      final best = (boardCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first;
+      final best = (boardCount.entries.toList()
+            ..sort((a, b) => b.value.compareTo(a.value)))
+          .first;
       req[best.key] = min(minTotalRequired, best.value);
     }
 
@@ -286,36 +257,34 @@ class Round {
 }
 
 /// =============================
-/// Juego (rondas infinitas + fallo reinicia misma ronda)
+/// Game
 /// =============================
 class Game {
   int lives;
   int currentRoundIndex = 0;
-  int score = 0;
   bool isGameOver = false;
 
   final Difficulty difficulty;
-  final bool useCustomWords; // <-- agrega esto
+  final bool useCustomWords;
   final Random _rnd;
   final List<Round> rounds = [];
 
   Game({
     this.lives = 3,
     this.difficulty = Difficulty.easy,
-    this.useCustomWords = false, // <-- y aquí
+    this.useCustomWords = false,
     Random? rnd,
   }) : _rnd = rnd ?? Random();
 
   int get roundNumber => currentRoundIndex + 1;
 
   Future<void> startGame({int roundCount = 1}) async {
-    // Se inicia con una ronda; luego serán infinitas
     lives = 3;
     currentRoundIndex = 0;
     isGameOver = false;
 
-    WordBank.instance.reset(); // Limpia las palabras al inicio del juego
-    await WordBank.instance.tryFetchOnce(); // Intenta cargar palabras desde la API
+    WordBank.instance.reset();
+    await WordBank.instance.tryFetchOnce();
 
     rounds
       ..clear()
@@ -335,42 +304,39 @@ class Game {
     final round = currentRound;
     final res = round.selectCard(index);
 
-    // ⚫ Negro → pierde vida y fin
     if (res == SelectionResult.black) {
       loseLife();
       isGameOver = true;
+      _saveScoreToFirestore();
       round.finished = true;
       return res;
     }
 
-    // ❌ Fallo → pierde vida y reinicia esta ronda
     if (res == SelectionResult.wrongColor || res == SelectionResult.exceededRecipeColor) {
       loseLife();
       if (!isGameOver) {
-        _resetCurrentRound(); // Reinicia la ronda (nuevo tablero y receta)
+        _resetCurrentRound();
+      } else {
+        _saveScoreToFirestore();
       }
       return res;
     }
 
-    // ✅ Receta completada → nueva ronda (infinita)
     if (round.recipe.isCompleted) {
       round.finished = true;
-      WordBank.instance._refillPool(); // Recarga las palabras al terminar la ronda
-      _nextRound(); // Avanza a la siguiente ronda
+      WordBank.instance._refillPool();
+      _nextRound();
       return res;
     }
 
-    // 🟡 Neutro o ✅ correcto parcial
     return res;
   }
 
-  /// Plantarse: vuelve al Chef; si ya estaba completa, avanza
   void cookStops() {
     if (isGameOver) return;
 
     final round = currentRound;
     final wasCompletedBefore = round.recipe.isCompleted;
-
     round.cookStops();
 
     if (!wasCompletedBefore && round.finished && round.recipe.isCompleted) {
@@ -382,50 +348,34 @@ class Game {
     lives--;
     if (lives <= 0) {
       isGameOver = true;
+      _saveScoreToFirestore();
     }
   }
 
-  /// Reinicia completamente la ronda actual tras un fallo
   void _resetCurrentRound() {
     final current = currentRound;
     rounds[currentRoundIndex] = Round(
-      number: current.number, // mismo número
+      number: current.number,
       board: _generateBoard(),
       difficulty: difficulty,
       rnd: _rnd,
     );
   }
 
-  /// Avanza a la siguiente ronda (infinitas)
   void _nextRound() {
     currentRoundIndex++;
     rounds.add(Round(number: currentRoundIndex + 1, board: _generateBoard(), difficulty: difficulty, rnd: _rnd));
   }
 
-  /// Construye un tablero de 18 cartas
-  /// - 1 negro (2 en hard)
-  /// - EASY: solo 2 colores no neutrales + neutrales opcionales
   List<Ingredient> _generateBoard() {
     final board = <Ingredient>[];
-
-    int totalCards;
-    switch (difficulty) {
-      case Difficulty.hard:
-        totalCards = 21;
-        break;
-      case Difficulty.medium:
-      case Difficulty.easy:
-        totalCards = 24;
-        break;
-    }
 
     final int blacks = (difficulty == Difficulty.hard) ? 2 : 1;
     for (int b = 0; b < blacks; b++) {
       board.add(Ingredient(_pickWord(), IngredientColor.black));
     }
 
-    int remaining = totalCards - board.length;
-
+    int remaining = 18 - board.length;
     final nonNeutral = <IngredientColor>[
       IngredientColor.kBeterraga,
       IngredientColor.kCebolla,
@@ -438,8 +388,8 @@ class Game {
     List<IngredientColor> palette;
     if (difficulty == Difficulty.easy) {
       nonNeutral.shuffle(_rnd);
-      final two = nonNeutral.take(2).toList(); // solo 2 colores
-      palette = [...two, IngredientColor.kOcultas]; // neutrales opcionales
+      final two = nonNeutral.take(2).toList();
+      palette = [...two, IngredientColor.kOcultas];
     } else {
       palette = [...nonNeutral, IngredientColor.kOcultas];
     }
@@ -455,11 +405,24 @@ class Game {
 
   String _pickWord() => WordBank.instance.nextWord();
 
-  //exportar puntuacion
-  Map<String, dynamic> exportScore({required String playerName}) {
-  return {
-    'player_name': playerName,
-    'score': score,
-  };
+  /// =============================
+  /// 🔥 Guarda puntaje en Firestore
+  /// =============================
+  Future<void> _saveScoreToFirestore() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final name = user?.email ?? 'Anónimo';
+      final score = currentRoundIndex * 100; // ejemplo simple: 100 pts por ronda
+
+      await FirebaseFirestore.instance.collection('leaderboard').add({
+        'user': name,
+        'score': score,
+        'date': FieldValue.serverTimestamp(),
+      });
+
+      print('Puntaje guardado correctamente: $score');
+    } catch (e) {
+      print('Error al guardar puntaje: $e');
+    }
   }
 }

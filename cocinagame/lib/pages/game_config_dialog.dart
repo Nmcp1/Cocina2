@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import '../constants/theme.dart';
-import '../game_logic.dart';
+import 'package:cocinagame/constants/theme.dart';
+import 'package:cocinagame/game_logic.dart';
 
 class GameConfigDialog extends StatefulWidget {
   final void Function(Difficulty difficulty, bool useCustomWords) onConfirm;

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
-import '../constants/theme.dart';
+import 'package:cocinagame/constants/theme.dart';
 
 class AddWordDialog extends StatefulWidget {
-  final void Function(String word) onAdd;
+  final Function(String) onAdd;
 
   const AddWordDialog({super.key, required this.onAdd});
 
@@ -13,144 +12,82 @@ class AddWordDialog extends StatefulWidget {
 
 class _AddWordDialogState extends State<AddWordDialog> {
   final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
+  bool _loading = false;
+  String? _errorMessage;
 
-  @override
-  void initState() {
-    super.initState();
-    // Solicita el foco al abrir el modal
-    Future.delayed(Duration.zero, () {
-      _focusNode.requestFocus();
+  Future<void> _handleAdd() async {
+    final word = _controller.text.trim();
+
+    if (word.isEmpty) {
+      setState(() => _errorMessage = "La palabra no puede estar vacía.");
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
     });
-  }
 
-  void _submit() {
-    if (_controller.text.trim().isNotEmpty) {
-      widget.onAdd(_controller.text.trim());
-      Navigator.pop(context);
+    try {
+      await widget.onAdd(word);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      setState(() => _errorMessage = "Error al agregar palabra: $e");
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: Stack(
-        clipBehavior: Clip.none,
+    return AlertDialog(
+      backgroundColor: kBackground1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text(
+        'Agregar palabra',
+        style: TextStyle(color: kPrimary, fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Blur de fondo
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-              child: Container(
-                color: Colors.black.withOpacity(0.05),
-              ),
+          TextField(
+            controller: _controller,
+            decoration: const InputDecoration(
+              hintText: 'Escribe una nueva palabra',
+              border: OutlineInputBorder(),
             ),
           ),
-          // Modal principal
-          Container(
-            decoration: BoxDecoration(
-              color: kBackground1,
-              borderRadius: BorderRadius.circular(18),
+          const SizedBox(height: 10),
+          if (_errorMessage != null)
+            Text(
+              _errorMessage!,
+              style: const TextStyle(color: Colors.red, fontSize: 14),
             ),
-            padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Input
-                Material(
-                  color: kBackground2,
-                  borderRadius: BorderRadius.circular(12),
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Ingrese la palabra',
-                        hintStyle: TextStyle(fontSize: 18),
-                      ),
-                      style: const TextStyle(fontSize: 18),
-                      onSubmitted: (_) => _submit(), // Enter agrega palabra
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
-                // Botones alineados como en configurar partida
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBackground1,
-                        side: BorderSide(color: kSecondary, width: 2),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Volver',
-                        style: TextStyle(
-                          color: kSecondary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kSecondary,
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: _submit,
-                      child: const Text(
-                        'Agregar',
-                        style: TextStyle(
-                          color: kBackground1,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          // Título sobresaliente igual que configurar partida
-          Positioned(
-            top: -32,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Material(
-                color: kPrimary,
-                borderRadius: BorderRadius.circular(12),
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
-                  child: Text(
-                    'Agregar palabra',
-                    style: const TextStyle(
-                      color: kBackground1,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.pop(context),
+          child: const Text('Cancelar', style: TextStyle(color: kText1)),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimary,
+            foregroundColor: kBackground1,
+          ),
+          onPressed: _loading ? null : _handleAdd,
+          child: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: kBackground1,
+                  ),
+                )
+              : const Text('Guardar'),
+        ),
+      ],
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../constants/theme.dart';
+import 'package:cocinagame/constants/theme.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
 import 'package:solar_icons/solar_icons.dart';
 

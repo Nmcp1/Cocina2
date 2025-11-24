@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
-import '../constants/theme.dart';
+import 'package:cocinagame/constants/theme.dart';
 
 class EditWordDialog extends StatefulWidget {
   final String initialWord;
-  final void Function(String word) onEdit;
-  final void Function()? onDelete;
+  final Function(String) onEdit;
+  final VoidCallback onDelete;
 
   const EditWordDialog({
     super.key,
     required this.initialWord,
     required this.onEdit,
-    this.onDelete,
+    required this.onDelete,
   });
 
   @override
@@ -20,241 +19,127 @@ class EditWordDialog extends StatefulWidget {
 
 class _EditWordDialogState extends State<EditWordDialog> {
   late TextEditingController _controller;
-  final FocusNode _focusNode = FocusNode();
+  bool _loading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialWord);
-    Future.delayed(Duration.zero, () {
-      _focusNode.requestFocus();
-    });
   }
 
-  void _submit() {
-    final word = _controller.text.trim();
-    if (word.isNotEmpty) {
-      widget.onEdit(word);
-      Navigator.pop(context);
+  Future<void> _handleSave() async {
+    final newWord = _controller.text.trim();
+
+    if (newWord.isEmpty) {
+      setState(() => _errorMessage = "La palabra no puede estar vacía.");
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await widget.onEdit(newWord);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      setState(() => _errorMessage = "Error al guardar cambios: $e");
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _handleDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Confirmar eliminación"),
+        content: const Text("¿Seguro que deseas eliminar esta palabra?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancelar"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Eliminar"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _loading = true);
+      try {
+        widget.onDelete();
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        setState(() => _errorMessage = "Error al eliminar: $e");
+      } finally {
+        if (mounted) setState(() => _loading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: Stack(
-        clipBehavior: Clip.none,
+    return AlertDialog(
+      backgroundColor: kBackground1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text(
+        'Editar palabra',
+        style: TextStyle(color: kPrimary, fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Blur de fondo
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-              child: Container(
-                color: Colors.black.withOpacity(0.05),
-              ),
+          TextField(
+            controller: _controller,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
             ),
           ),
-          // Modal principal
-          Container(
-            decoration: BoxDecoration(
-              color: kBackground1,
-              borderRadius: BorderRadius.circular(18),
+          const SizedBox(height: 10),
+          if (_errorMessage != null)
+            Text(
+              _errorMessage!,
+              style: const TextStyle(color: Colors.red, fontSize: 14),
             ),
-            padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Input y botón eliminar
-                Row(
-                  children: [
-                    Expanded(
-                      child: Material(
-                        color: kBackground2,
-                        borderRadius: BorderRadius.circular(12),
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                          child: TextField(
-                            controller: _controller,
-                            focusNode: _focusNode,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'Palabra personalizada',
-                              hintStyle: TextStyle(fontSize: 18),
-                            ),
-                            style: const TextStyle(fontSize: 18),
-                            onSubmitted: (_) => _submit(), // Enter edita palabra
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Material(
-                      color: kPrimary,
-                      borderRadius: BorderRadius.circular(8),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(8),
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => Dialog(
-                              backgroundColor: Colors.transparent,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: kBackground1,
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text(
-                                      '¿Eliminar palabra?',
-                                      style: TextStyle(
-                                        color: kPrimary,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: kBackground1,
-                                            side: BorderSide(color: kSecondary, width: 2),
-                                            elevation: 2,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                          ),
-                                          onPressed: () => Navigator.pop(context),
-                                          child: Text(
-                                            'Cancelar',
-                                            style: TextStyle(
-                                              color: kSecondary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                            ),
-                                          ),
-                                        ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: kSecondary,
-                                            elevation: 2,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                          ),
-                                          onPressed: () {
-                                            Navigator.pop(context); // Cierra el modal de confirmación
-                                            if (widget.onDelete != null) {
-                                              widget.onDelete!();
-                                            }
-                                            Navigator.pop(context); // Cierra el modal de edición
-                                          },
-                                          child: const Text(
-                                            'Eliminar',
-                                            style: TextStyle(
-                                              color: kBackground1,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                        child: const SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: Icon(Icons.delete_forever_rounded, color: kBackground1, size: 28),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                // Botones
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBackground1,
-                        side: BorderSide(color: kSecondary, width: 2),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Volver',
-                        style: TextStyle(
-                          color: kSecondary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kSecondary,
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: _submit,
-                      child: const Text(
-                        'Editar',
-                        style: TextStyle(
-                          color: kBackground1,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          // Título sobresaliente
-          Positioned(
-            top: -32,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Material(
-                color: kPrimary,
-                borderRadius: BorderRadius.circular(12),
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
-                  child: Text(
-                    'Editar palabra',
-                    style: const TextStyle(
-                      color: kBackground1,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.pop(context),
+          child: const Text('Cancelar', style: TextStyle(color: kText1)),
+        ),
+        TextButton(
+          onPressed: _loading ? null : _handleDelete,
+          child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimary,
+            foregroundColor: kBackground1,
+          ),
+          onPressed: _loading ? null : _handleSave,
+          child: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: kBackground1,
+                  ),
+                )
+              : const Text('Guardar'),
+        ),
+      ],
     );
   }
 }

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'add_word_dialog.dart';
-import 'edit_word_dialog.dart';
-import '../constants/theme.dart';
-import '../main_nav_bar.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
-import 'package:diacritic/diacritic.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:cocinagame/pages/add_word_dialog.dart';
+import 'package:cocinagame/pages/edit_word_dialog.dart';
+import 'package:cocinagame/constants/theme.dart';
+import 'package:cocinagame/main_nav_bar.dart';
 
 class CustomWordsScreen extends StatefulWidget {
   const CustomWordsScreen({super.key});
@@ -15,86 +15,72 @@ class CustomWordsScreen extends StatefulWidget {
 }
 
 class _CustomWordsScreenState extends State<CustomWordsScreen> {
-  int _selectedIndex = 1;
   final TextEditingController _searchController = TextEditingController();
 
-  // Lista de palabras personalizadas (inicia vacía)
-  List<String> customWords = [];
+  int _selectedIndex = 1;
 
-  // Palabras filtradas según el buscador
-  List<String> get filteredWords {
-    final query = removeDiacritics(_searchController.text.trim().toLowerCase());
-    if (query.isEmpty) return customWords;
-    return customWords.where((word) =>
-      removeDiacritics(word.toLowerCase()).contains(query)
-    ).toList();
-  }
+  /// Resultado del buscador
+  String searchQuery = "";
 
-  void _onNavTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-      if (index == 0) {
-        Navigator.pushNamed(context, '/menu');
-      } else if (index == 1) {
-      } else if (index == 2) {
-        Navigator.pushNamed(context, '/top');
-      } else if (index == 3) {
-        Navigator.pushNamed(context, '/comojugar');
-      }
-    });
-  }
-
-  // Cargar palabras al iniciar
   @override
   void initState() {
     super.initState();
     _searchController.addListener(() {
-      setState(() {}); // Actualiza la vista al escribir en el buscador
-    });
-    _loadWords();
-  }
-
-  Future<void> _loadWords() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      customWords = prefs.getStringList('customWords') ?? [];
+      setState(() {
+        searchQuery = _searchController.text.trim();
+      });
     });
   }
 
-  Future<void> _saveWords() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('customWords', customWords);
+  // --------------------------------------------------------------------
+  // FIRESTORE: Referencia
+  // --------------------------------------------------------------------
+  CollectionReference<Map<String, dynamic>> _wordsRef() {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('palabras'); // <-- NUEVO NOMBRE FINAL
   }
 
-  // Al agregar palabra
-  void _addWord(String word) {
-    setState(() {
-      customWords.add(word);
+  // --------------------------------------------------------------------
+  // CRUD FIRESTORE
+  // --------------------------------------------------------------------
+
+  Future<void> _addWord(String word) async {
+    await _wordsRef().add({
+      'palabra': word,
+      'createdAt': FieldValue.serverTimestamp(),
     });
-    _saveWords();
   }
 
-  // Al editar palabra
-  void _editWord(int index, String newWord) {
-    setState(() {
-      customWords[index] = newWord;
-    });
-    _saveWords();
+  Future<void> _editWord(String id, String newWord) async {
+    await _wordsRef().doc(id).update({'palabra': newWord});
   }
 
-  // Al eliminar palabra
-  void _deleteWord(int index) {
-    setState(() {
-      customWords.removeAt(index);
-    });
-    _saveWords();
+  Future<void> _deleteWord(String id) async {
+    await _wordsRef().doc(id).delete();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  // --------------------------------------------------------------------
+  // NAV BAR
+  // --------------------------------------------------------------------
+
+  void _onNavTap(int index) {
+    setState(() => _selectedIndex = index);
+
+    if (index == 0) {
+      Navigator.pushNamed(context, '/menu');
+    } else if (index == 2) {
+      Navigator.pushNamed(context, '/clasificaciones');
+    } else if (index == 3) {
+      Navigator.pushNamed(context, '/comojugar');
+    }
   }
+
+  // --------------------------------------------------------------------
+  // UI
+  // --------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -102,6 +88,7 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
       backgroundColor: kBackground1,
       body: Column(
         children: [
+          // ------------------ TÍTULO -------------------
           Container(
             margin: const EdgeInsets.only(top: 60, left: 16, right: 16, bottom: 16),
             width: double.infinity,
@@ -109,12 +96,12 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
               color: kPrimary,
               borderRadius: BorderRadius.circular(12),
               elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
                 child: Center(
                   child: Text(
                     'Palabras personalizadas',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: kBackground1,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -124,7 +111,8 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
               ),
             ),
           ),
-          // Buscador y botón agregar
+
+          // ------------------ BUSCADOR + AGREGAR -------------------
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.all(8),
@@ -145,23 +133,20 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      prefixIcon: const Icon(
-                        MingCuteIcons.mgc_search_3_fill,
-                        color: kPrimary,
-                        size: 26,
-                      ),
+                      prefixIcon: const Icon(Icons.search, color: kPrimary),
                       hintText: 'Buscar palabra',
                       hintStyle: const TextStyle(color: kText2),
                       filled: true,
-                      fillColor: kBackground1,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
+                      fillColor: kBackground2,
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: kPrimary, width: 1),
+                        borderSide: const BorderSide(color: kPrimary, width: 2),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: kPrimary, width: 1),
+                        borderSide: const BorderSide(color: kPrimary, width: 2),
                       ),
                     ),
                   ),
@@ -175,10 +160,8 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                     onTap: () {
                       showDialog(
                         context: context,
-                        builder: (context) => AddWordDialog(
-                          onAdd: (word) {
-                            _addWord(word);
-                          },
+                        builder: (_) => AddWordDialog(
+                          onAdd: (word) => _addWord(word),
                         ),
                       );
                     },
@@ -192,11 +175,13 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
               ],
             ),
           ),
+
           const SizedBox(height: 16),
-          // Lista de palabras personalizadas
+
+          // ------------------ LISTA (StreamBuilder) -------------------
           Expanded(
             child: Container(
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16), // <-- margen inferior agregado
+              margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: kBackground2,
                 borderRadius: BorderRadius.circular(12),
@@ -208,105 +193,93 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                   ),
                 ],
               ),
-              child: filteredWords.isEmpty
-                  ? Center(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: _wordsRef()
+                    .orderBy('createdAt', descending: false)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(
                       child: Text(
-                        'No hay palabras personalizadas',
-                        style: TextStyle(
-                          color: kText2,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        'Sin palabras aún…\nUsa el botón + para agregar',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: kText2, fontSize: 18),
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      itemCount: filteredWords.length,
-                      physics: const BouncingScrollPhysics(),
-                      separatorBuilder: (_, __) => Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Divider(
-                          height: 14,
-                          thickness: 1,
-                          color: Colors.grey.withOpacity(0.65),
-                        ),
-                      ),
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          child: Row(
-                            children: [
-                              // Ícono personalizado
-                              Container(
-                                width: 34,
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: Colors.transparent,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Image.asset(
-                                    'assets/images/icon_word.png',
-                                    width: 32,
-                                    height: 32,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  filteredWords[index],
-                                  style: const TextStyle(
-                                    color: kText1,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Botón editar para cada palabra
-                              Material(
-                                color: kPrimary,
-                                borderRadius: BorderRadius.circular(8),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(8),
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => EditWordDialog(
-                                        initialWord: filteredWords[index],
-                                        onEdit: (newWord) {
-                                          final originalIndex = customWords.indexOf(filteredWords[index]);
-                                          if (originalIndex != -1) {
-                                            _editWord(originalIndex, newWord);
-                                          }
-                                        },
-                                        onDelete: () {
-                                          final originalIndex = customWords.indexOf(filteredWords[index]);
-                                          if (originalIndex != -1) {
-                                            _deleteWord(originalIndex);
-                                          }
-                                        },
-                                      ),
-                                    );
-                                  },
-                                  child: const SizedBox(
-                                    width: 32,
-                                    height: 32,
-                                    child: Icon(Icons.edit, color: kBackground1, size: 22),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                    );
+                  }
+
+                  final docs = snapshot.data!.docs;
+
+                  // Aplicar buscador
+                  final filtered = docs.where((doc) {
+                    final text = doc['palabra'] ?? '';
+                    return text.toLowerCase().contains(searchQuery.toLowerCase());
+                  }).toList();
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => Divider(
+                      height: 16,
+                      thickness: 1,
+                      color: Colors.grey.withOpacity(0.6),
                     ),
+                    itemBuilder: (context, index) {
+                      final doc = filtered[index];
+                      final wordId = doc.id;
+                      final text = doc['palabra'] ?? '';
+
+                      return ListTile(
+                        leading: Image.asset(
+                          'assets/images/icon_word.png',
+                          width: 32,
+                          height: 32,
+                        ),
+                        title: Text(
+                          text,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: kText1,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        trailing: Material(
+                          color: kPrimary,
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => EditWordDialog(
+                                  initialWord: text,
+                                  onEdit: (newWord) => _editWord(wordId, newWord),
+                                  onDelete: () => _deleteWord(wordId),
+                                ),
+                              );
+                            },
+                            child: const SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: Icon(Icons.edit,
+                                  color: kBackground1, size: 22),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ],
       ),
+
       bottomNavigationBar: MainNavBar(
         currentIndex: _selectedIndex,
         onTap: _onNavTap,
