@@ -20,7 +20,7 @@ class _HowToPlayState extends State<HowToPlayScreen> {
       } else if (index == 1) {
         Navigator.pushNamed(context, '/palabras');
       } else if (index == 2) {
-        Navigator.pushNamed(context, '/clasificaciones');
+        Navigator.pushNamed(context, '/top');
       }
     });
   }

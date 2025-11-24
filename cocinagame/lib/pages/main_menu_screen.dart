@@ -23,7 +23,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       } else if (index == 1) {
         Navigator.pushNamed(context, '/palabras');
       } else if (index == 2) {
-        Navigator.pushNamed(context, '/clasificaciones');
+        Navigator.pushNamed(context, '/top');
       } else if (index == 3) {
         Navigator.pushNamed(context, '/comojugar');
       }
