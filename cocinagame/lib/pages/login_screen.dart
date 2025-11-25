@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../constants/theme.dart';
+import 'package:cocinagame/constants/theme.dart';
+import 'package:cocinagame/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,13 +12,19 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
 
+  // Controladores
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  bool _loading = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackground1,
       body: Stack(
         children: [
-          // Media elipse arriba
+          // MEDIA ELIPSE SUPERIOR
           Positioned(
             top: 0,
             left: 0,
@@ -28,13 +35,14 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: BoxDecoration(
                 color: kPrimary,
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.elliptical(500, 200),
-                  bottomRight: Radius.elliptical(500, 200),
+                  bottomLeft: Radius.elliptical(400, 250),
+                  bottomRight: Radius.elliptical(400, 250),
                 ),
               ),
             ),
           ),
-          // Texto COCINA2 sobre la elipse
+
+          // TEXTO SUPERIOR
           Positioned(
             top: 60,
             left: 0,
@@ -50,7 +58,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          // Contenido centrado sin ovalado
+
+          // CONTENIDO CENTRAL
           Positioned(
             top: 180,
             left: 0,
@@ -60,9 +69,10 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // LOGO
                   ClipOval(
                     child: SizedBox(
-                      width: 200, // radio 100 * 2
+                      width: 200,
                       height: 200,
                       child: Image.asset(
                         'assets/images/logo_cocina2.png',
@@ -70,7 +80,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 20),
+
                   const Text(
                     '¡Bienvenido!',
                     style: TextStyle(
@@ -79,11 +91,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   const SizedBox(height: 40),
-                  // Usuario
+
+                  // CAMPO EMAIL
                   TextField(
+                    controller: _emailController,
                     decoration: InputDecoration(
-                      labelText: 'Usuario',
+                      labelText: 'Usuario (correo)',
                       labelStyle: const TextStyle(color: kPrimary),
                       enabledBorder: OutlineInputBorder(
                         borderSide: const BorderSide(color: kPrimary, width: 2),
@@ -97,9 +112,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       filled: true,
                     ),
                   ),
+
                   const SizedBox(height: 40),
-                  // Contraseña
+
+                  // CAMPO CONTRASEÑA
                   TextField(
+                    controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
@@ -116,7 +134,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       filled: true,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: kPrimary,
                         ),
                         onPressed: () {
@@ -127,7 +147,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 50),
+
+                  // BOTÓN LOGIN
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kSecondary,
@@ -137,15 +160,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/menu'); // Navega al main menu
-                    },
-                    child: const Text(
-                      'Iniciar sesión',
-                      style: TextStyle(fontSize: 24, color: kBackground2, fontWeight: FontWeight.bold),
-                    ),
+                    onPressed: _loading ? null : _loginUser,
+                    child: _loading
+                        ? const CircularProgressIndicator(color: kBackground2)
+                        : const Text(
+                            'Iniciar sesión',
+                            style: TextStyle(
+                              fontSize: 24,
+                              color: kBackground2,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
+
                   const SizedBox(height: 30),
+
+                  // BOTÓN IR A REGISTRO
                   TextButton(
                     onPressed: () => Navigator.pushNamed(context, '/register'),
                     child: Text.rich(
@@ -153,14 +183,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         text: '¿Aún no tiene una cuenta? ',
                         style: const TextStyle(
                           color: kText1,
-                          fontWeight: FontWeight.normal,
                           fontSize: 18,
                         ),
                         children: [
                           TextSpan(
                             text: 'Registrarse',
                             style: const TextStyle(
-                              color: kText1,
+                              color: kPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
@@ -176,5 +205,40 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       ),
     );
+  }
+
+  // LOGIN FIREBASE
+  Future<void> _loginUser() async {
+    final email = _emailController.text.trim();
+    final pass = _passwordController.text.trim();
+
+    if (email.isEmpty || pass.isEmpty) {
+      _showMessage("Completa todos los campos");
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      await AuthService().login(email, pass);
+      // main.dart detectará el cambio de estado; cerramos esta pantalla
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } catch (e) {
+      String msg;
+      if (e is Exception) {
+        msg = e.toString().replaceFirst('Exception: ', '');
+      } else {
+        msg = 'Error inesperado';
+      }
+      _showMessage(msg);
+    }
+
+    setState(() => _loading = false);
+  }
+
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
   }
 }
