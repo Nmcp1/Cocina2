@@ -525,12 +525,26 @@ class Game {
 
   String _pickWord() => WordBank.instance.nextWord();
 
-  // Exportar puntuación
-  Map<String, dynamic> exportScore({required String playerName}) {
-    return {
-      'player_name': playerName,
-      'score': score,
-    };
+// Exportar puntuación
+Map<String, dynamic> exportScore({required String playerName}) {
+  String difficultyKey;
+  switch (difficulty) {
+    case Difficulty.easy:
+      difficultyKey = 'easy';
+      break;
+    case Difficulty.medium:
+      difficultyKey = 'medium';
+      break;
+    case Difficulty.hard:
+      difficultyKey = 'hard';
+      break;
   }
+
+  return {
+    'player_name': playerName,
+    'score': score,
+    'difficulty': difficultyKey,
+  };
+}
 }
 
