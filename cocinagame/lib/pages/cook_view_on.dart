@@ -146,10 +146,18 @@ class _CookViewOnState extends State<CookViewOn> {
         msg = 'Carta neutra, pierdes el turno.';
         break;
       case SelectionResult.wrongColor:
-        msg = 'No era de la receta. Pierdes una vida.';
+        if (widget.game.lives < 1) {
+          msg = 'No era de la receta. Pierdes la última vida. ¡Se acabó el juego!';
+        } else {
+          msg = 'No era de la receta. Pierdes una vida.';
+        }
         break;
       case SelectionResult.exceededRecipeColor:
-        msg = 'Te pasaste con ese color. Pierdes una vida.';
+        if (widget.game.lives < 1) {
+          msg = 'Te pasaste con ese color. Pierdes la última vida. ¡Se acabó el juego!';
+        } else {
+          msg = 'Te pasaste con ese color. Pierdes una vida.';
+        }
         break;
       case SelectionResult.black:
         msg = '¡NEGRO! Se acabó el juego.';
@@ -307,14 +315,45 @@ class _CookViewOnState extends State<CookViewOn> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    _roundIcon(kSecondary, isYellow: true),
-                    const SizedBox(width: 10),
-                    _roundIcon(kSecondary, isYellow: true),
-                    const SizedBox(width: 10),
-                    _roundIcon(kSecondary, isYellow: true),
-                  ],
+                Container(
+                  color: kBackground1,
+                  padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 3),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: List.generate(3, (i) {
+                          final vidasRestantes = widget.game.lives;
+                          final isActive = i < vidasRestantes;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: isActive ? kSecondary : kBackground1,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.15),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Iconify(
+                                  Bxs.book_heart,
+                                  color: isActive ? kBackground1 : kSecondary,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),

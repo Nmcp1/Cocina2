@@ -124,17 +124,46 @@ class _ChefViewOnState extends State<ChefViewOn> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween, // <-- separa los extremos
               children: [
-                // Íconos de ronda alineados a la izquierda
-                Row(
-                  children: [
-                    _roundIcon(kSecondary, isYellow: true),
-                    const SizedBox(width: 10),
-                    _roundIcon(kSecondary, isYellow: true),
-                    const SizedBox(width: 10),
-                    _roundIcon(kSecondary, isYellow: true),
-                  ],
+                Container(
+                  color: kBackground1,
+                  padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 3),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: List.generate(3, (i) {
+                          final vidasRestantes = widget.game.lives;
+                          final isActive = i < vidasRestantes;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: isActive ? kSecondary : kBackground1,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.15),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Iconify(
+                                  Bxs.book_heart,
+                                  color: isActive ? kBackground1 : kSecondary,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
                 ),
-                // Contenedor de puntaje alineado a la derecha
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   height: 40,
