@@ -143,7 +143,7 @@ class _TopScreenState extends State<TopScreen> {
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text('Recetas', style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 18)),
+                          child: Text('Puntaje', style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 18)),
                         ),
                       ],
                     ),
