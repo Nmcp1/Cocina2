@@ -24,22 +24,42 @@ class _TopScreenState extends State<TopScreen> {
     _loadScores();
   }
 
+  /// Mapea la etiqueta del dropdown a la key guardada en Firestore
+  String? _difficultyKeyForFilter() {
+    switch (_selectedDifficulty) {
+      case 'Fácil':
+        return 'easy';
+      case 'Media':
+        return 'medium';
+      case 'Difícil':
+        return 'hard';
+      default:
+        return null; // "Dificultad" => sin filtro
+    }
+  }
+
   Future<void> _loadScores() async {
     try {
-      final query = await FirebaseFirestore.instance
-          .collection('scores')
-          .orderBy('score', descending: true)
-          .limit(50)
-          .get();
+      Query query = FirebaseFirestore.instance.collection('scores');
 
-      final data = query.docs.asMap().entries.map((entry) {
+      final diffKey = _difficultyKeyForFilter();
+      if (diffKey != null) {
+        // Filtrar por dificultad si se eligió una
+        query = query.where('difficulty', isEqualTo: diffKey);
+      }
+
+      query = query.orderBy('score', descending: true).limit(50);
+
+      final snapshot = await query.get();
+
+      final data = snapshot.docs.asMap().entries.map((entry) {
         final index = entry.key;
-        final doc = entry.value.data();
+        final doc = entry.value.data() as Map<String, dynamic>;
 
         return {
           'puesto': index + 1,
-          'nombre': doc['player_name'] ?? 'Sin nombre',
-          'puntaje': doc['score'] ?? 0,
+          'nombre': (doc['player_name'] ?? 'Sin nombre') as String,
+          'puntaje': (doc['score'] ?? 0) as int,
         };
       }).toList();
 
@@ -95,7 +115,7 @@ class _TopScreenState extends State<TopScreen> {
             ),
           ),
 
-          // Dropdown de dificultad (a futuro)
+          // Dropdown de dificultad
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.symmetric(horizontal: 135, vertical: 0),
@@ -126,6 +146,7 @@ class _TopScreenState extends State<TopScreen> {
                   setState(() {
                     _selectedDifficulty = value!;
                   });
+                  _loadScores(); // recargar leaderboard con el nuevo filtro
                 },
               ),
             ),
@@ -177,7 +198,7 @@ class _TopScreenState extends State<TopScreen> {
                     child: topPlayers.isEmpty
                         ? const Center(
                             child: Text(
-                              "Cargando...",
+                              "Sin datos para esta dificultad",
                               style: TextStyle(color: kText1, fontSize: 18),
                             ),
                           )
