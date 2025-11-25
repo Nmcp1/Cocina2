@@ -108,7 +108,7 @@ class _ChefViewOnState extends State<ChefViewOn> {
                           shape: BoxShape.circle,
                           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 2))],
                         ),
-                        child: Center(child: Iconify(_showOcultas ? Mdi.eye_off : Mdi.eye, color: kSecondary, size: 32)),
+                        child: Center(child: Iconify(_showOcultas ? Mdi.eye : Mdi.eye_off, color: kSecondary, size: 32)),
                       ),
                     ),
                   ),
@@ -174,7 +174,12 @@ class _ChefViewOnState extends State<ChefViewOn> {
               child: GridView.builder(
                 padding: EdgeInsets.zero,
                 itemCount: visibleCount,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: 2.2),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 2.2,
+                ),
                 itemBuilder: (context, index) {
                   final ingredient = board[index];
                   final bool isRevealed = ingredient.revealed;
@@ -222,14 +227,21 @@ class _ChefViewOnState extends State<ChefViewOn> {
                     }
                   }
 
+                  // Lógica para mostrar colores según el estado del ojo
+                  bool showColors = _showOcultas; // true: mostrar colores, false: ocultar colores
+
                   return Container(
                     decoration: BoxDecoration(
-                      color: isRevealed ? kBackground1 : ingredientBgColor(ingredient.color),
+                      color: isRevealed
+                          ? kBackground1
+                          : (showColors ? ingredientBgColor(ingredient.color) : kOcultas),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: isRevealed
                             ? ingredientBgColor(ingredient.color)
-                            : (ingredient.color == IngredientColor.kOcultas ? kSecondary : ingredientBgColor(ingredient.color)),
+                            : (showColors
+                                ? (ingredient.color == IngredientColor.kOcultas ? kSecondary : ingredientBgColor(ingredient.color))
+                                : kSecondary),
                         width: 1.5,
                       ),
                       boxShadow: [
@@ -248,7 +260,9 @@ class _ChefViewOnState extends State<ChefViewOn> {
                               ingredient.name,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: ingredient.color == IngredientColor.kOcultas ? kText1 : kBackground1,
+                                color: (showColors && ingredient.color != IngredientColor.kOcultas)
+                                    ? kBackground1
+                                    : kText1,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
                               ),
