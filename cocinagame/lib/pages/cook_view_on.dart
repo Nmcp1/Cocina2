@@ -5,6 +5,9 @@ import '../constants/theme.dart';
 import '../game_logic.dart';
 import 'chef_transicion.dart';
 import 'game_over.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 // Modal para mensajes
 Future<void> showMessageModal(BuildContext context, String message) async {
@@ -158,8 +161,28 @@ class _CookViewOnState extends State<CookViewOn> {
 
     await showMessageModal(context, msg);
 
-    // Navega a Game Over si el juego terminó
+    //guardar puntaje y tirar gameover
     if (widget.game.isGameOver) {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+
+        if (user != null) {
+          final scoreData = widget.game.exportScore(
+            playerName: user.displayName ?? user.email ?? 'Anónimo',
+          );
+
+          await FirebaseFirestore.instance.collection('scores').add({
+            ...scoreData,                  // player_name + score
+            'userId': user.uid,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+          debugPrint('No hay usuario logeado, no se guarda score.');
+        }
+      } catch (e) {
+        debugPrint('Error al guardar puntaje en Firestore: $e');
+      }
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -167,14 +190,15 @@ class _CookViewOnState extends State<CookViewOn> {
             ronda: widget.game.roundNumber,
             recetas: widget.game.currentRoundIndex,
             vidas: widget.game.lives,
-            puntajeTotal: widget.game.score, // <-- AGREGA ESTE
-            puntosGanadosTurno: _calculatePointsForCorrect(_correctThisTurn), // <-- Y ESTE
+            puntajeTotal: widget.game.score,
+            puntosGanadosTurno: _calculatePointsForCorrect(_correctThisTurn),
             previousGame: widget.game,
           ),
         ),
       );
       return;
     }
+
 
     // Navega a transición chef si termina el turno
     if (result == SelectionResult.wrongColor ||
