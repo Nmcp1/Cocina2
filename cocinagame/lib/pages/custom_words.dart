@@ -5,7 +5,10 @@ import '../constants/theme.dart';
 import '../main_nav_bar.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
 import 'package:diacritic/diacritic.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+// Firebase
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CustomWordsScreen extends StatefulWidget {
   const CustomWordsScreen({super.key});
@@ -18,16 +21,17 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
   int _selectedIndex = 1;
   final TextEditingController _searchController = TextEditingController();
 
-  // Lista de palabras personalizadas (inicia vacía)
+  // Lista de palabras personalizadas
   List<String> customWords = [];
 
   // Palabras filtradas según el buscador
   List<String> get filteredWords {
     final query = removeDiacritics(_searchController.text.trim().toLowerCase());
     if (query.isEmpty) return customWords;
-    return customWords.where((word) =>
-      removeDiacritics(word.toLowerCase()).contains(query)
-    ).toList();
+    return customWords
+        .where((word) =>
+            removeDiacritics(word.toLowerCase()).contains(query))
+        .toList();
   }
 
   void _onNavTap(int index) {
@@ -36,6 +40,7 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
       if (index == 0) {
         Navigator.pushNamed(context, '/menu');
       } else if (index == 1) {
+        // Ya estás en palabras personalizadas
       } else if (index == 2) {
         Navigator.pushNamed(context, '/top');
       } else if (index == 3) {
@@ -44,7 +49,6 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
     });
   }
 
-  // Cargar palabras al iniciar
   @override
   void initState() {
     super.initState();
@@ -54,16 +58,61 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
     _loadWords();
   }
 
+  /// Referencia al documento de palabras del usuario actual:
+  /// users/{uid}/custom_data/words
+  DocumentReference<Map<String, dynamic>>? get _userWordsDoc {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('custom_data')
+        .doc('words');
+  }
+
   Future<void> _loadWords() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      customWords = prefs.getStringList('customWords') ?? [];
-    });
+    try {
+      final docRef = _userWordsDoc;
+      if (docRef == null) {
+        debugPrint('No hay usuario logueado, no se cargan palabras.');
+        return;
+      }
+
+      final snapshot = await docRef.get();
+      if (snapshot.exists) {
+        final data = snapshot.data();
+        final List<dynamic> wordsDynamic = data?['words'] ?? [];
+        setState(() {
+          customWords = List<String>.from(wordsDynamic);
+        });
+      } else {
+        setState(() {
+          customWords = [];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error cargando palabras personalizadas: $e');
+    }
   }
 
   Future<void> _saveWords() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('customWords', customWords);
+    try {
+      final docRef = _userWordsDoc;
+      if (docRef == null) {
+        debugPrint('No hay usuario logueado, no se guardan palabras.');
+        return;
+      }
+
+      await docRef.set(
+        {
+          'words': customWords,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      debugPrint('Error guardando palabras personalizadas: $e');
+    }
   }
 
   // Al agregar palabra
@@ -103,18 +152,19 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
       body: Column(
         children: [
           Container(
-            margin: const EdgeInsets.only(top: 60, left: 16, right: 16, bottom: 16),
+            margin: const EdgeInsets.only(
+                top: 60, left: 16, right: 16, bottom: 16),
             width: double.infinity,
             child: Material(
               color: kPrimary,
               borderRadius: BorderRadius.circular(12),
               elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
                 child: Center(
                   child: Text(
                     'Palabras personalizadas',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: kBackground1,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -154,14 +204,17 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                       hintStyle: const TextStyle(color: kText2),
                       filled: true,
                       fillColor: kBackground1,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 0, horizontal: 8),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: kPrimary, width: 1),
+                        borderSide:
+                            const BorderSide(color: kPrimary, width: 1),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: kPrimary, width: 1),
+                        borderSide:
+                            const BorderSide(color: kPrimary, width: 1),
                       ),
                     ),
                   ),
@@ -185,7 +238,8 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                     child: const SizedBox(
                       width: 40,
                       height: 40,
-                      child: Icon(Icons.add, color: kBackground1, size: 28),
+                      child: Icon(Icons.add,
+                          color: kBackground1, size: 28),
                     ),
                   ),
                 ),
@@ -196,7 +250,8 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
           // Lista de palabras personalizadas
           Expanded(
             child: Container(
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16), // <-- margen inferior agregado
+              margin:
+                  const EdgeInsets.fromLTRB(16, 0, 16, 16),
               decoration: BoxDecoration(
                 color: kBackground2,
                 borderRadius: BorderRadius.circular(12),
@@ -209,7 +264,7 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                 ],
               ),
               child: filteredWords.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Text(
                         'No hay palabras personalizadas',
                         style: TextStyle(
@@ -220,27 +275,32 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                       ),
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12),
                       itemCount: filteredWords.length,
-                      physics: const BouncingScrollPhysics(),
+                      physics:
+                          const BouncingScrollPhysics(),
                       separatorBuilder: (_, __) => Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 8),
                         child: Divider(
                           height: 14,
                           thickness: 1,
-                          color: Colors.grey.withOpacity(0.65),
+                          color:
+                              Colors.grey.withOpacity(0.65),
                         ),
                       ),
                       itemBuilder: (context, index) {
                         return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           child: Row(
                             children: [
                               // Ícono personalizado
                               Container(
                                 width: 34,
                                 height: 34,
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color: Colors.transparent,
                                   shape: BoxShape.circle,
                                 ),
@@ -268,24 +328,36 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                               // Botón editar para cada palabra
                               Material(
                                 color: kPrimary,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius:
+                                    BorderRadius.circular(8),
                                 child: InkWell(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius:
+                                      BorderRadius.circular(8),
                                   onTap: () {
                                     showDialog(
                                       context: context,
-                                      builder: (context) => EditWordDialog(
-                                        initialWord: filteredWords[index],
+                                      builder: (context) =>
+                                          EditWordDialog(
+                                        initialWord:
+                                            filteredWords[index],
                                         onEdit: (newWord) {
-                                          final originalIndex = customWords.indexOf(filteredWords[index]);
+                                          final originalIndex =
+                                              customWords.indexOf(
+                                                  filteredWords[
+                                                      index]);
                                           if (originalIndex != -1) {
-                                            _editWord(originalIndex, newWord);
+                                            _editWord(originalIndex,
+                                                newWord);
                                           }
                                         },
                                         onDelete: () {
-                                          final originalIndex = customWords.indexOf(filteredWords[index]);
+                                          final originalIndex =
+                                              customWords.indexOf(
+                                                  filteredWords[
+                                                      index]);
                                           if (originalIndex != -1) {
-                                            _deleteWord(originalIndex);
+                                            _deleteWord(
+                                                originalIndex);
                                           }
                                         },
                                       ),
@@ -294,7 +366,9 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                                   child: const SizedBox(
                                     width: 32,
                                     height: 32,
-                                    child: Icon(Icons.edit, color: kBackground1, size: 22),
+                                    child: Icon(Icons.edit,
+                                        color: kBackground1,
+                                        size: 22),
                                   ),
                                 ),
                               ),

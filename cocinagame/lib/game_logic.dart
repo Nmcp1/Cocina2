@@ -2,6 +2,9 @@
 import 'dart:math';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 /// =============================
 /// Enums y modelos base
@@ -70,99 +73,137 @@ class Clue {
 enum Palabras { manzana, bicicleta, elefante, montana, guitarra, ventana, libro, reloj, playa, estrella, nube, perro, balon, arbol, ciudad, fuego, luna, camisa, flor, rio, tren, zapato, mariposa, carro, gato, mar }
 
 /// =============================
-/// WordBank con recarga automática
+/// WordBank con palabras base + custom por usuario
+/// =============================
+/// =============================
+/// WordBank con palabras base + custom opcionales
 /// =============================
 class WordBank {
   WordBank._();
   static final WordBank instance = WordBank._();
 
-  final Set<String> _used = {}; // Palabras ya usadas
-  final List<String> _pool = []; // Pool de palabras disponibles
-  final List<String> _base = []; // Snapshot de las palabras base
+  final Set<String> _used = {};      // Palabras ya usadas
+  final List<String> _pool = [];     // Pool de palabras disponibles
+  final List<String> _base = [];     // Palabras base + custom (si aplica)
   bool _fetchedOnce = false;
   int _fallbackCounter = 1;
   final Random _rnd = Random();
 
-  void _ensureBase() {
-    if (_base.isEmpty) {
-      final base = Palabras.values.map((e) => e.name).toList();
-      base.shuffle(_rnd);
-      _base.addAll(base);
-    }
+  bool useCustomWords = false; // <-- control global usado por Game
+
+  /// Configura si debe usar palabras personalizadas
+  void configure({required bool useCustom}) {
+    useCustomWords = useCustom;
+    _fetchedOnce = false;  // fuerza recarga
   }
 
-  void _refillPool() {
-    _ensureBase();
-    // Limpia las palabras usadas y recarga el pool
-    _used.clear(); // Limpia todas las palabras usadas
+  /// Palabras base desde enum Palabras
+  List<String> _loadBaseWords() {
+    final seen = <String>{};
+    final result = <String>[];
 
-    final candidates = List<String>.from(_base);
-    candidates.shuffle(_rnd);
+    for (final p in Palabras.values) {
+      final name = p.name.trim();
+      if (name.isEmpty) continue;
+      if (seen.add(name.toLowerCase())) {
+        result.add(name);
+      }
+    }
+    return result;
+  }
+
+  /// Recarga el pool del banco
+  void _refillPool() {
+    if (_base.isEmpty) {
+      _base.addAll(_loadBaseWords());
+    }
+
+    _used.clear();
+    final candidates = List<String>.from(_base)..shuffle(_rnd);
 
     _pool
       ..clear()
-      ..addAll(candidates); // Recarga el pool con todas las palabras base
+      ..addAll(candidates);
   }
 
+  /// Cargar palabras base + (opcional) custom desde Firestore
   Future<void> tryFetchOnce() async {
     if (_fetchedOnce) return;
     _fetchedOnce = true;
 
-    Future<List<String>?> tryEndpoint(String url) async {
+    // 1) cargamos las palabras del enum SIEMPRE
+    List<String> finalWords = _loadBaseWords();
+    final seen = finalWords.map((e) => e.toLowerCase()).toSet();
+
+    // 2) ¿Debe usar palabras custom?
+    if (useCustomWords) {
       try {
-        final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 2));
-        if (res.statusCode == 200) {
-          final data = jsonDecode(res.body);
-          if (data is List) {
-            final words = data.whereType<String>().map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-            if (words.isNotEmpty) return words;
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final doc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('custom_data')
+              .doc('words')
+              .get();
+
+          final data = doc.data();
+          if (data != null && data['words'] is List) {
+            final List<dynamic> customDyn = data['words'];
+
+            for (final dynamic w in customDyn) {
+              if (w is! String) continue;
+              final trimmed = w.trim();
+              if (trimmed.isEmpty) continue;
+
+              final lower = trimmed.toLowerCase();
+              if (!seen.contains(lower)) {
+                seen.add(lower);
+                finalWords.add(trimmed);
+              }
+            }
           }
         }
-      } catch (_) {}
-      return null;
-    }
-
-    final api = await tryEndpoint('http://localhost:8000/api/words') ??
-        await tryEndpoint('http://localhost:8000/words');
-
-    if (api != null && api.isNotEmpty) {
-      final seen = <String>{};
-      final normalized = <String>[];
-      for (final w in api) {
-        final k = w.toLowerCase();
-        if (seen.add(k)) normalized.add(w);
+      } catch (_) {
+        // si firestore falla, seguimos con baseWords solamente
       }
-      normalized.shuffle(_rnd);
-      _base
-        ..clear()
-        ..addAll(normalized);
-    } else {
-      _ensureBase(); // Si no se obtiene de la API, usa las palabras locales
     }
 
-    _refillPool(); // Recarga el pool con las palabras obtenidas
+    // 3) Guardar en _base
+    finalWords.shuffle(_rnd);
+    _base
+      ..clear()
+      ..addAll(finalWords);
+
+    // 4) Recargar el pool
+    _refillPool();
   }
 
+  /// Siguiente palabra disponible
   String nextWord() {
     if (_pool.isEmpty) {
       _refillPool();
     }
-    while (_pool.isNotEmpty) {
-      final w = _pool.removeAt(0); // Toma la primera palabra del pool
-      _used.add(w); // Marca la palabra como usada
+
+    if (_pool.isNotEmpty) {
+      final w = _pool.removeAt(0);
+      _used.add(w);
       return w;
     }
-    // Defensa final: si no hay palabras disponibles, genera una palabra por defecto
+
+    // Defensa final
     return 'ingrediente_${_fallbackCounter++}';
   }
 
+  /// Reset entre partidas
   void reset() {
-    _used.clear(); // Limpia las palabras usadas
-    _pool.clear(); // Limpia el pool de palabras
+    _used.clear();
+    _pool.clear();
     _fallbackCounter = 1;
-    // _base se mantiene igual; es el conjunto de palabras originales
+    // _base se mantiene
   }
 }
+
 
 /// =============================
 /// Ronda
@@ -288,6 +329,9 @@ class Round {
 /// =============================
 /// Juego (rondas infinitas + fallo reinicia misma ronda)
 /// =============================
+/// =============================
+/// Juego (rondas infinitas + fallo reinicia misma ronda)
+/// =============================
 class Game {
   int lives;
   int currentRoundIndex = 0;
@@ -295,31 +339,46 @@ class Game {
   bool isGameOver = false;
 
   final Difficulty difficulty;
-  final bool useCustomWords; // <-- agrega esto
+  final bool useCustomWords; // controla si se usan palabras custom del usuario
   final Random _rnd;
   final List<Round> rounds = [];
 
   Game({
     this.lives = 3,
     this.difficulty = Difficulty.easy,
-    this.useCustomWords = false, // <-- y aquí
+    this.useCustomWords = false,
     Random? rnd,
   }) : _rnd = rnd ?? Random();
 
   int get roundNumber => currentRoundIndex + 1;
 
   Future<void> startGame({int roundCount = 1}) async {
-    // Se inicia con una ronda; luego serán infinitas
+    // Reinicio de estado
     lives = 3;
     currentRoundIndex = 0;
     isGameOver = false;
+    score = 0;
 
-    WordBank.instance.reset(); // Limpia las palabras al inicio del juego
-    await WordBank.instance.tryFetchOnce(); // Intenta cargar palabras desde la API
+    // Reset de palabras
+    WordBank.instance.reset();
 
+    // Configuramos si queremos usar o no palabras personalizadas
+    WordBank.instance.configure(useCustom: useCustomWords);
+
+    // Cargar palabras base (+ custom si useCustomWords = true)
+    await WordBank.instance.tryFetchOnce();
+
+    // Iniciar primera ronda
     rounds
       ..clear()
-      ..add(Round(number: 1, board: _generateBoard(), difficulty: difficulty, rnd: _rnd));
+      ..add(
+        Round(
+          number: 1,
+          board: _generateBoard(),
+          difficulty: difficulty,
+          rnd: _rnd,
+        ),
+      );
   }
 
   Round get currentRound => rounds[currentRoundIndex];
@@ -335,7 +394,7 @@ class Game {
     final round = currentRound;
     final res = round.selectCard(index);
 
-    // ⚫ Negro → pierde vida y fin
+    // ⚫ Negro → pierde vida y fin del juego
     if (res == SelectionResult.black) {
       loseLife();
       isGameOver = true;
@@ -344,7 +403,8 @@ class Game {
     }
 
     // ❌ Fallo → pierde vida y reinicia esta ronda
-    if (res == SelectionResult.wrongColor || res == SelectionResult.exceededRecipeColor) {
+    if (res == SelectionResult.wrongColor ||
+        res == SelectionResult.exceededRecipeColor) {
       loseLife();
       if (!isGameOver) {
         _resetCurrentRound(); // Reinicia la ronda (nuevo tablero y receta)
@@ -355,12 +415,15 @@ class Game {
     // ✅ Receta completada → nueva ronda (infinita)
     if (round.recipe.isCompleted) {
       round.finished = true;
-      WordBank.instance._refillPool(); // Recarga las palabras al terminar la ronda
-      _nextRound(); // Avanza a la siguiente ronda
+
+      // Opcional: recargar el pool de palabras al terminar la ronda
+      WordBank.instance._refillPool();
+
+      _nextRound();
       return res;
     }
 
-    // 🟡 Neutro o ✅ correcto parcial
+    // 🟡 Neutro o correcto parcial
     return res;
   }
 
@@ -399,10 +462,17 @@ class Game {
   /// Avanza a la siguiente ronda (infinitas)
   void _nextRound() {
     currentRoundIndex++;
-    rounds.add(Round(number: currentRoundIndex + 1, board: _generateBoard(), difficulty: difficulty, rnd: _rnd));
+    rounds.add(
+      Round(
+        number: currentRoundIndex + 1,
+        board: _generateBoard(),
+        difficulty: difficulty,
+        rnd: _rnd,
+      ),
+    );
   }
 
-  /// Construye un tablero de 18 cartas
+  /// Construye un tablero de cartas
   /// - 1 negro (2 en hard)
   /// - EASY: solo 2 colores no neutrales + neutrales opcionales
   List<Ingredient> _generateBoard() {
@@ -432,7 +502,7 @@ class Game {
       IngredientColor.kChampinon,
       IngredientColor.kPimenton,
       IngredientColor.kTomate,
-      IngredientColor.kZanahoria
+      IngredientColor.kZanahoria,
     ];
 
     List<IngredientColor> palette;
@@ -455,11 +525,12 @@ class Game {
 
   String _pickWord() => WordBank.instance.nextWord();
 
-  //exportar puntuacion
+  // Exportar puntuación
   Map<String, dynamic> exportScore({required String playerName}) {
-  return {
-    'player_name': playerName,
-    'score': score,
-  };
+    return {
+      'player_name': playerName,
+      'score': score,
+    };
   }
 }
+
