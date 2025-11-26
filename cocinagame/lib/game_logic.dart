@@ -64,40 +64,35 @@ class Recipe {
 /// Pista del chef
 class Clue {
   final String word;
-  final int quantity; // reservado por si luego limitas selecciones
+  final int quantity;
 
   Clue(this.word, this.quantity) : assert(quantity >= 1);
 }
 
-/// Palabras fallback
+/// Palabras base
 enum Palabras { manzana, bicicleta, elefante, montana, guitarra, ventana, libro, reloj, playa, estrella, nube, perro, balon, arbol, ciudad, fuego, luna, camisa, flor, rio, tren, zapato, mariposa, carro, gato, mar }
 
-/// =============================
-/// WordBank con palabras base + custom por usuario
-/// =============================
-/// =============================
-/// WordBank con palabras base + custom opcionales
-/// =============================
+/// Banco de palabras
 class WordBank {
   WordBank._();
   static final WordBank instance = WordBank._();
 
-  final Set<String> _used = {};      // Palabras ya usadas
-  final List<String> _pool = [];     // Pool de palabras disponibles
-  final List<String> _base = [];     // Palabras base + custom (si aplica)
+  final Set<String> _used = {};      
+  final List<String> _pool = [];     
+  final List<String> _base = [];     
   bool _fetchedOnce = false;
   int _fallbackCounter = 1;
   final Random _rnd = Random();
 
-  bool useCustomWords = false; // <-- control global usado por Game
+  bool useCustomWords = false;
 
   /// Configura si debe usar palabras personalizadas
   void configure({required bool useCustom}) {
     useCustomWords = useCustom;
-    _fetchedOnce = false;  // fuerza recarga
+    _fetchedOnce = false;
   }
 
-  /// Palabras base desde enum Palabras
+  /// Palabras base
   List<String> _loadBaseWords() {
     final seen = <String>{};
     final result = <String>[];
@@ -126,16 +121,14 @@ class WordBank {
       ..addAll(candidates);
   }
 
-  /// Cargar palabras base + (opcional) custom desde Firestore
+  /// Cargar palabras
   Future<void> tryFetchOnce() async {
     if (_fetchedOnce) return;
     _fetchedOnce = true;
 
-    // 1) cargamos las palabras del enum SIEMPRE
     List<String> finalWords = _loadBaseWords();
     final seen = finalWords.map((e) => e.toLowerCase()).toSet();
 
-    // 2) ¿Debe usar palabras custom?
     if (useCustomWords) {
       try {
         final user = FirebaseAuth.instance.currentUser;
@@ -168,18 +161,14 @@ class WordBank {
         // si firestore falla, seguimos con baseWords solamente
       }
     }
-
-    // 3) Guardar en _base
     finalWords.shuffle(_rnd);
     _base
       ..clear()
       ..addAll(finalWords);
 
-    // 4) Recargar el pool
     _refillPool();
   }
 
-  /// Siguiente palabra disponible
   String nextWord() {
     if (_pool.isEmpty) {
       _refillPool();
@@ -191,23 +180,16 @@ class WordBank {
       return w;
     }
 
-    // Defensa final
     return 'ingrediente_${_fallbackCounter++}';
   }
 
-  /// Reset entre partidas
   void reset() {
     _used.clear();
     _pool.clear();
     _fallbackCounter = 1;
-    // _base se mantiene
   }
 }
 
-
-/// =============================
-/// Ronda
-/// =============================
 class Round {
   final int number;
   final List<Ingredient> board;
@@ -229,7 +211,7 @@ class Round {
   void giveClue(Clue clue) {
     if (finished) return;
     activeClue = clue;
-    isChefTurn = false; // turno del cocinero
+    isChefTurn = false;
     _currentSelections.clear();
   }
 
@@ -246,7 +228,6 @@ class Round {
     return res;
   }
 
-  /// Plantarse: vuelve turno al Chef. Solo cierra la ronda si ya quedó completa.
   void cookStops() {
     if (isChefTurn || finished) return;
 
@@ -259,9 +240,6 @@ class Round {
     _currentSelections.clear();
   }
 
-  /// Receta consistente con tablero
-  /// - Easy: hasta 2 colores; total mínimo 5
-  /// - Medium/Hard: más colores, total mínimo 5
   Recipe _generateRecipeForBoard() {
     final boardCount = <IngredientColor, int>{};
     for (final ing in board) {
@@ -274,7 +252,7 @@ class Round {
 
     switch (difficulty) {
       case Difficulty.easy:
-        maxDistinct = 2; // receta con 1..2 colores
+        maxDistinct = 2;
         break;
       case Difficulty.medium:
         maxDistinct = 4;
@@ -291,7 +269,6 @@ class Round {
     final req = <IngredientColor, int>{};
     int remaining = minTotalRequired;
 
-    // al menos 1 por color elegido (si hay disponibilidad)
     for (final color in chosenColors) {
       final avail = boardCount[color] ?? 0;
       if (avail <= 0) continue;
@@ -300,7 +277,6 @@ class Round {
       if (remaining <= 0) break;
     }
 
-    // reparte resto sin pasar disponibilidad
     while (remaining > 0 && chosenColors.isNotEmpty) {
       bool added = false;
       for (final color in chosenColors) {
@@ -315,7 +291,6 @@ class Round {
       }
       if (!added) break;
     }
-
     // Garantiza una receta válida
     if (req.isEmpty && boardCount.isNotEmpty) {
       final best = (boardCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first;
@@ -326,12 +301,6 @@ class Round {
   }
 }
 
-/// =============================
-/// Juego (rondas infinitas + fallo reinicia misma ronda)
-/// =============================
-/// =============================
-/// Juego (rondas infinitas + fallo reinicia misma ronda)
-/// =============================
 class Game {
   int lives;
   int currentRoundIndex = 0;
@@ -339,7 +308,7 @@ class Game {
   bool isGameOver = false;
 
   final Difficulty difficulty;
-  final bool useCustomWords; // controla si se usan palabras custom del usuario
+  final bool useCustomWords;
   final Random _rnd;
   final List<Round> rounds = [];
 
@@ -353,19 +322,14 @@ class Game {
   int get roundNumber => currentRoundIndex + 1;
 
   Future<void> startGame({int roundCount = 1}) async {
-    // Reinicio de estado
     lives = 3;
     currentRoundIndex = 0;
     isGameOver = false;
     score = 0;
-
-    // Reset de palabras
     WordBank.instance.reset();
 
-    // Configuramos si queremos usar o no palabras personalizadas
     WordBank.instance.configure(useCustom: useCustomWords);
 
-    // Cargar palabras base (+ custom si useCustomWords = true)
     await WordBank.instance.tryFetchOnce();
 
     // Iniciar primera ronda
@@ -394,7 +358,6 @@ class Game {
     final round = currentRound;
     final res = round.selectCard(index);
 
-    // ⚫ Negro → pierde vida y fin del juego
     if (res == SelectionResult.black) {
       loseLife();
       isGameOver = true;
@@ -402,32 +365,27 @@ class Game {
       return res;
     }
 
-    // ❌ Fallo → pierde vida y reinicia esta ronda
     if (res == SelectionResult.wrongColor ||
         res == SelectionResult.exceededRecipeColor) {
       loseLife();
       if (!isGameOver) {
-        _resetCurrentRound(); // Reinicia la ronda (nuevo tablero y receta)
+        _resetCurrentRound();
       }
       return res;
     }
 
-    // ✅ Receta completada → nueva ronda (infinita)
     if (round.recipe.isCompleted) {
       round.finished = true;
 
-      // Opcional: recargar el pool de palabras al terminar la ronda
       WordBank.instance._refillPool();
 
       _nextRound();
       return res;
     }
 
-    // 🟡 Neutro o correcto parcial
     return res;
   }
 
-  /// Plantarse: vuelve al Chef; si ya estaba completa, avanza
   void cookStops() {
     if (isGameOver) return;
 
@@ -448,18 +406,16 @@ class Game {
     }
   }
 
-  /// Reinicia completamente la ronda actual tras un fallo
   void _resetCurrentRound() {
     final current = currentRound;
     rounds[currentRoundIndex] = Round(
-      number: current.number, // mismo número
+      number: current.number,
       board: _generateBoard(),
       difficulty: difficulty,
       rnd: _rnd,
     );
   }
 
-  /// Avanza a la siguiente ronda (infinitas)
   void _nextRound() {
     currentRoundIndex++;
     rounds.add(
@@ -472,9 +428,6 @@ class Game {
     );
   }
 
-  /// Construye un tablero de cartas
-  /// - 1 negro (2 en hard)
-  /// - EASY: solo 2 colores no neutrales + neutrales opcionales
   List<Ingredient> _generateBoard() {
     final board = <Ingredient>[];
 
@@ -508,8 +461,8 @@ class Game {
     List<IngredientColor> palette;
     if (difficulty == Difficulty.easy) {
       nonNeutral.shuffle(_rnd);
-      final two = nonNeutral.take(2).toList(); // solo 2 colores
-      palette = [...two, IngredientColor.kOcultas]; // neutrales opcionales
+      final two = nonNeutral.take(2).toList();
+      palette = [...two, IngredientColor.kOcultas];
     } else {
       palette = [...nonNeutral, IngredientColor.kOcultas];
     }
