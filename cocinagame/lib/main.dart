@@ -14,8 +14,6 @@ import 'pages/top_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 👇 INICIALIZAR FIREBASE ANTES DE USARLO (muy importante en web)
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -60,10 +58,10 @@ class AuthWrapper extends StatelessWidget {
         }
 
         if (snapshot.hasData) {
-          return const MainMenuScreen();   // usuario logeado → menú
+          return const MainMenuScreen();
         }
 
-        return const WelcomeScreen();      // sin usuario → pantalla inicial
+        return const WelcomeScreen();
       },
     );
   }

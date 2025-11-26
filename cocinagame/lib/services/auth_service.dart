@@ -3,12 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Stream de cambios de autenticación
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-  // Alias por compatibilidad con usos anteriores
   Stream<User?> get authState => authStateChanges;
 
-  // Usuario actual
   User? get currentUser => _auth.currentUser;
 
 
@@ -48,17 +45,5 @@ class AuthService {
   // Logout
   Future<void> signOut() async {
     await _auth.signOut();
-  }
-
-  // Reset password
-  Future<void> sendPasswordResetEmail(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-    } on FirebaseAuthException catch (e) {
-      final msg = e.message ?? 'Error al solicitar el reinicio de contraseña: ${e.code}';
-      throw Exception(msg);
-    } catch (e) {
-      throw Exception('Error inesperado al solicitar reinicio de contraseña');
-    }
   }
 }
