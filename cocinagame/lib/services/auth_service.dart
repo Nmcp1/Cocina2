@@ -11,6 +11,7 @@ class AuthService {
   // Usuario actual
   User? get currentUser => _auth.currentUser;
 
+
   // Login con email y contraseña
   Future<UserCredential> login(String email, String password) async {
     try {
@@ -45,12 +46,8 @@ class AuthService {
   }
 
   // Logout
-  Future<void> logout() async {
-    try {
-      await _auth.signOut();
-    } catch (e) {
-      throw Exception('Error al cerrar sesión');
-    }
+  Future<void> signOut() async {
+    await _auth.signOut();
   }
 
   // Reset password

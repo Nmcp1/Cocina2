@@ -221,9 +221,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await AuthService().login(email, pass);
-      // main.dart detectará el cambio de estado; cerramos esta pantalla
+
       if (!mounted) return;
-      Navigator.of(context).pop();
+
+      // ⬇️ IMPORTANTE: ir a la ruta base, limpiando el stack
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/',
+        (route) => false,
+      );
     } catch (e) {
       String msg;
       if (e is Exception) {
@@ -232,11 +238,12 @@ class _LoginScreenState extends State<LoginScreen> {
         msg = 'Error inesperado';
       }
       _showMessage(msg);
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
-
-    setState(() => _loading = false);
   }
-
   void _showMessage(String msg) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
