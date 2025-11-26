@@ -105,9 +105,8 @@ TURNO
 
 OBJETIVO
 Completar todos los colores de la receta antes de:
-• perder las 3 vidas,
-• tocar negro,
-• o que se acabe el tiempo.
+• Perder las 3 vidas,
+• Tocar la bomba.
 
 REGLAS DE COLOR
 • Color de receta:
