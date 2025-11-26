@@ -20,6 +20,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _loading = false;
 
   @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackground1,
@@ -234,7 +242,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   // BOTÓN LOGIN
                   TextButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, '/login');
+                      // Reemplaza la ruta actual para evitar URLs raras en web
+                      Navigator.pushReplacementNamed(context, '/login');
                     },
                     child: const Text(
                       "¿Ya tienes cuenta? Inicia sesión",
@@ -272,12 +281,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       await AuthService().register(email, pass);
-      // main.dart detectará el login y redirigirá automáticamente
+
+      if (!mounted) return;
+
+      // Después de registrar, ir directo al menú y limpiar el stack
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/',
+        (route) => false,
+      );
     } catch (e) {
       _showMessage("Error: ${e.toString()}");
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
-
-    setState(() => _loading = false);
   }
 
   void _showMessage(String msg) {

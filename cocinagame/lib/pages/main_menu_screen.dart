@@ -4,6 +4,8 @@ import '../main_nav_bar.dart';
 import '../game_logic.dart';
 import 'chef_view_on.dart';
 import 'game_config_dialog.dart';
+import 'package:cocinagame/services/auth_service.dart';
+
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -133,7 +135,25 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 ),
                 const SizedBox(height: 40),
                 TextButton(
-                  onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+                  onPressed: () async {
+                    try {
+                      await AuthService().signOut(); // cerrar sesión Firebase
+
+                      if (!context.mounted) return;
+
+                      // 👇 Ir a la ruta base y limpiar todo el stack
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/',
+                        (route) => false,
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error al cerrar sesión: $e')),
+                      );
+                    }
+                  },
                   child: const Text(
                     'Cerrar sesión',
                     style: TextStyle(
@@ -141,7 +161,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                       fontSize: 18,
                     ),
                   ),
-                ),
+                )
+
               ],
             ),
           ),
