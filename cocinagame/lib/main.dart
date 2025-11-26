@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'firebase_options.dart';         // 👈 generado por FlutterFire
+import 'firebase_options.dart';
 
 import 'pages/welcome_screen.dart';
 import 'pages/login_screen.dart';
@@ -11,14 +11,16 @@ import 'pages/main_menu_screen.dart';
 import 'pages/custom_words.dart';
 import 'pages/how_to_play.dart';
 import 'pages/top_screen.dart';
+import 'package:flutter/services.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 👇 INICIALIZAR FIREBASE ANTES DE USARLO (muy importante en web)
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
 
   runApp(const MainApp());
 }
@@ -60,10 +62,10 @@ class AuthWrapper extends StatelessWidget {
         }
 
         if (snapshot.hasData) {
-          return const MainMenuScreen();   // usuario logeado → menú
+          return const MainMenuScreen();
         }
 
-        return const WelcomeScreen();      // sin usuario → pantalla inicial
+        return const WelcomeScreen();
       },
     );
   }
