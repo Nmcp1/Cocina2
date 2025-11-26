@@ -20,9 +20,8 @@ class CustomWordsScreen extends StatefulWidget {
 class _CustomWordsScreenState extends State<CustomWordsScreen> {
   int _selectedIndex = 1;
   final TextEditingController _searchController = TextEditingController();
-
-  // Lista de palabras personalizadas
   List<String> customWords = [];
+  bool _isLoading = false; // <-- NUEVO
 
   // Palabras filtradas según el buscador
   List<String> get filteredWords {
@@ -71,6 +70,9 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
   }
 
   Future<void> _loadWords() async {
+    setState(() {
+      _isLoading = true; // <-- NUEVO
+    });
     try {
       final docRef = _userWordsDoc;
       if (docRef == null) {
@@ -92,6 +94,10 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
       }
     } catch (e) {
       debugPrint('Error cargando palabras personalizadas: $e');
+    } finally {
+      setState(() {
+        _isLoading = false; // <-- NUEVO
+      });
     }
   }
 
@@ -250,8 +256,7 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
           // Lista de palabras personalizadas
           Expanded(
             child: Container(
-              margin:
-                  const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               decoration: BoxDecoration(
                 color: kBackground2,
                 borderRadius: BorderRadius.circular(12),
@@ -263,120 +268,126 @@ class _CustomWordsScreenState extends State<CustomWordsScreen> {
                   ),
                 ],
               ),
-              child: filteredWords.isEmpty
+              child: _isLoading
                   ? const Center(
-                      child: Text(
-                        'No hay palabras personalizadas',
-                        style: TextStyle(
-                          color: kText2,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: CircularProgressIndicator(
+                        color: kPrimary,
                       ),
                     )
-                  : ListView.separated(
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 12),
-                      itemCount: filteredWords.length,
-                      physics:
-                          const BouncingScrollPhysics(),
-                      separatorBuilder: (_, __) => Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 8),
-                        child: Divider(
-                          height: 14,
-                          thickness: 1,
-                          color:
-                              Colors.grey.withOpacity(0.65),
-                        ),
-                      ),
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          child: Row(
-                            children: [
-                              // Ícono personalizado
-                              Container(
-                                width: 34,
-                                height: 34,
-                                decoration: const BoxDecoration(
-                                  color: Colors.transparent,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Image.asset(
-                                    'assets/images/icon_word.png',
-                                    width: 32,
-                                    height: 32,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  filteredWords[index],
-                                  style: const TextStyle(
-                                    color: kText1,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Botón editar para cada palabra
-                              Material(
-                                color: kPrimary,
-                                borderRadius:
-                                    BorderRadius.circular(8),
-                                child: InkWell(
-                                  borderRadius:
-                                      BorderRadius.circular(8),
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) =>
-                                          EditWordDialog(
-                                        initialWord:
-                                            filteredWords[index],
-                                        onEdit: (newWord) {
-                                          final originalIndex =
-                                              customWords.indexOf(
-                                                  filteredWords[
-                                                      index]);
-                                          if (originalIndex != -1) {
-                                            _editWord(originalIndex,
-                                                newWord);
-                                          }
-                                        },
-                                        onDelete: () {
-                                          final originalIndex =
-                                              customWords.indexOf(
-                                                  filteredWords[
-                                                      index]);
-                                          if (originalIndex != -1) {
-                                            _deleteWord(
-                                                originalIndex);
-                                          }
-                                        },
-                                      ),
-                                    );
-                                  },
-                                  child: const SizedBox(
-                                    width: 32,
-                                    height: 32,
-                                    child: Icon(Icons.edit,
-                                        color: kBackground1,
-                                        size: 22),
-                                  ),
-                                ),
-                              ),
-                            ],
+                  : (filteredWords.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No hay palabras personalizadas',
+                            style: TextStyle(
+                              color: kText2,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        );
-                      },
-                    ),
+                        )
+                      : ListView.separated(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 12),
+                          itemCount: filteredWords.length,
+                          physics:
+                              const BouncingScrollPhysics(),
+                          separatorBuilder: (_, __) => Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8),
+                            child: Divider(
+                              height: 14,
+                              thickness: 1,
+                              color:
+                                  Colors.grey.withOpacity(0.65),
+                            ),
+                          ),
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              child: Row(
+                                children: [
+                                  // Ícono personalizado
+                                  Container(
+                                    width: 34,
+                                    height: 34,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.transparent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Center(
+                                      child: Image.asset(
+                                        'assets/images/icon_word.png',
+                                        width: 32,
+                                        height: 32,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      filteredWords[index],
+                                      style: const TextStyle(
+                                        color: kText1,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Botón editar para cada palabra
+                                  Material(
+                                    color: kPrimary,
+                                    borderRadius:
+                                        BorderRadius.circular(8),
+                                    child: InkWell(
+                                      borderRadius:
+                                          BorderRadius.circular(8),
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) =>
+                                              EditWordDialog(
+                                            initialWord:
+                                                filteredWords[index],
+                                            onEdit: (newWord) {
+                                              final originalIndex =
+                                                  customWords.indexOf(
+                                                      filteredWords[
+                                                          index]);
+                                              if (originalIndex != -1) {
+                                                _editWord(originalIndex,
+                                                    newWord);
+                                              }
+                                            },
+                                            onDelete: () {
+                                              final originalIndex =
+                                                  customWords.indexOf(
+                                                      filteredWords[
+                                                          index]);
+                                              if (originalIndex != -1) {
+                                                _deleteWord(
+                                                    originalIndex);
+                                              }
+                                            },
+                                          ),
+                                        );
+                                      },
+                                      child: const SizedBox(
+                                        width: 32,
+                                        height: 32,
+                                        child: Icon(Icons.edit,
+                                            color: kBackground1,
+                                            size: 22),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        )),
             ),
           ),
         ],
