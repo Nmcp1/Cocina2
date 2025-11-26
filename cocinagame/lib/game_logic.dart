@@ -77,22 +77,20 @@ class WordBank {
   WordBank._();
   static final WordBank instance = WordBank._();
 
-  final Set<String> _used = {};      
-  final List<String> _pool = [];     
-  final List<String> _base = [];     
+  final Set<String> _used = {};
+  final List<String> _pool = [];
+  final List<String> _base = [];
   bool _fetchedOnce = false;
   int _fallbackCounter = 1;
   final Random _rnd = Random();
 
   bool useCustomWords = false;
 
-  /// Configura si debe usar palabras personalizadas
   void configure({required bool useCustom}) {
     useCustomWords = useCustom;
     _fetchedOnce = false;
   }
 
-  /// Palabras base
   List<String> _loadBaseWords() {
     final seen = <String>{};
     final result = <String>[];
@@ -107,21 +105,24 @@ class WordBank {
     return result;
   }
 
-  /// Recarga el pool del banco
   void _refillPool() {
     if (_base.isEmpty) {
       _base.addAll(_loadBaseWords());
     }
+    var remaining = _base.where((w) => !_used.contains(w)).toList();
 
-    _used.clear();
-    final candidates = List<String>.from(_base)..shuffle(_rnd);
+    if (remaining.isEmpty) {
+      _used.clear();
+      remaining = List<String>.from(_base);
+    }
+
+    remaining.shuffle(_rnd);
 
     _pool
       ..clear()
-      ..addAll(candidates);
+      ..addAll(remaining);
   }
 
-  /// Cargar palabras
   Future<void> tryFetchOnce() async {
     if (_fetchedOnce) return;
     _fetchedOnce = true;
@@ -158,9 +159,9 @@ class WordBank {
           }
         }
       } catch (_) {
-        // si firestore falla, seguimos con baseWords solamente
       }
     }
+
     finalWords.shuffle(_rnd);
     _base
       ..clear()
@@ -176,7 +177,7 @@ class WordBank {
 
     if (_pool.isNotEmpty) {
       final w = _pool.removeAt(0);
-      _used.add(w);
+      _used.add(w);       // 👈 se marca como usada
       return w;
     }
 
