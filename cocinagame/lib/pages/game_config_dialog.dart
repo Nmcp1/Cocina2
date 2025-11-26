@@ -39,7 +39,7 @@ class _GameConfigDialogState extends State<GameConfigDialog> {
               color: kBackground1,
               borderRadius: BorderRadius.circular(18),
             ),
-            padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+            padding: const EdgeInsets.fromLTRB(14, 48, 24, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -51,7 +51,7 @@ class _GameConfigDialogState extends State<GameConfigDialog> {
                       'Dificultad',
                       style: TextStyle(fontSize: 18, color: kText1),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

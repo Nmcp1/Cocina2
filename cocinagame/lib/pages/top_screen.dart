@@ -13,10 +13,10 @@ class TopScreen extends StatefulWidget {
 class _TopScreenState extends State<TopScreen> {
   int _selectedIndex = 2;
   String _selectedDifficulty = 'Dificultad';
-
   List<Map<String, dynamic>> topPlayers = [];
-
   final List<String> difficulties = ['Dificultad', 'Fácil', 'Media', 'Difícil'];
+
+  bool _isLoading = false; // <-- NUEVO
 
   @override
   void initState() {
@@ -39,6 +39,9 @@ class _TopScreenState extends State<TopScreen> {
   }
 
   Future<void> _loadScores() async {
+    setState(() {
+      _isLoading = true; // <-- NUEVO
+    });
     try {
       Query query = FirebaseFirestore.instance.collection('scores');
 
@@ -68,6 +71,10 @@ class _TopScreenState extends State<TopScreen> {
       });
     } catch (e) {
       debugPrint("Error cargando leaderboard: $e");
+    } finally {
+      setState(() {
+        _isLoading = false; // <-- NUEVO
+      });
     }
   }
 
@@ -118,7 +125,7 @@ class _TopScreenState extends State<TopScreen> {
           // Dropdown de dificultad
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 135, vertical: 0),
+            padding: const EdgeInsets.symmetric(horizontal: 132, vertical: 0),
             decoration: BoxDecoration(
               color: kBackground2,
               borderRadius: BorderRadius.circular(12),
@@ -135,6 +142,7 @@ class _TopScreenState extends State<TopScreen> {
                 value: _selectedDifficulty,
                 icon: const Icon(Icons.arrow_drop_down, color: kPrimary),
                 style: const TextStyle(color: kText1, fontSize: 18, fontWeight: FontWeight.w500),
+                dropdownColor: kBackground2,
                 borderRadius: BorderRadius.circular(8),
                 items: difficulties.map((dif) {
                   return DropdownMenuItem<String>(
@@ -146,7 +154,7 @@ class _TopScreenState extends State<TopScreen> {
                   setState(() {
                     _selectedDifficulty = value!;
                   });
-                  _loadScores(); // recargar leaderboard con el nuevo filtro
+                  _loadScores();
                 },
               ),
             ),
@@ -169,105 +177,111 @@ class _TopScreenState extends State<TopScreen> {
                   ),
                 ],
               ),
-              child: Column(
-                children: [
-                  // Encabezado de tabla
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                    child: const Row(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: kPrimary,
+                      ),
+                    )
+                  : Column(
                       children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text('Puesto', style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 18)),
+                        // Encabezado de tabla
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          child: const Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text('Puesto', style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 18)),
+                              ),
+                              Expanded(
+                                flex: 5,
+                                child: Text('Nombre', style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 18)),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text('Puntaje', style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 18)),
+                              ),
+                            ],
+                          ),
                         ),
+                        const Divider(height: 1, thickness: 1, color: Colors.grey),
+
+                        // Lista de jugadores
                         Expanded(
-                          flex: 5,
-                          child: Text('Nombre', style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 18)),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text('Puntaje', style: TextStyle(color: kText1, fontWeight: FontWeight.bold, fontSize: 18)),
+                          child: topPlayers.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    "Sin datos para esta dificultad",
+                                    style: TextStyle(color: kText1, fontSize: 18),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  itemCount: topPlayers.length,
+                                  itemBuilder: (context, index) {
+                                    final player = topPlayers[index];
+                                    Widget puestoWidget;
+
+                                    if (player['puesto'] == 1) {
+                                      puestoWidget = Image.asset('assets/images/primero.png', width: 30, height: 30);
+                                    } else if (player['puesto'] == 2) {
+                                      puestoWidget = Image.asset('assets/images/segundo.png', width: 30, height: 30);
+                                    } else if (player['puesto'] == 3) {
+                                      puestoWidget = Image.asset('assets/images/tercero.png', width: 30, height: 30);
+                                    } else if (player['puesto'] == 4) {
+                                      puestoWidget = Image.asset('assets/images/cuarto.png', width: 30, height: 30);
+                                    } else {
+                                      puestoWidget = Text(
+                                        '${player['puesto']}',
+                                        style: const TextStyle(
+                                          color: kText2,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                        ),
+                                      );
+                                    }
+
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            flex: 2,
+                                            child: Center(child: puestoWidget),
+                                          ),
+                                          Expanded(
+                                            flex: 5,
+                                            child: Text(
+                                              player['nombre'],
+                                              style: const TextStyle(
+                                                color: kText1,
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            flex: 3,
+                                            child: Center(
+                                              child: Text(
+                                                '${player['puntaje']}',
+                                                style: const TextStyle(
+                                                  color: kText1,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
-                  ),
-                  const Divider(height: 1, thickness: 1, color: Colors.grey),
-
-                  // Lista de jugadores
-                  Expanded(
-                    child: topPlayers.isEmpty
-                        ? const Center(
-                            child: Text(
-                              "Sin datos para esta dificultad",
-                              style: TextStyle(color: kText1, fontSize: 18),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            itemCount: topPlayers.length,
-                            itemBuilder: (context, index) {
-                              final player = topPlayers[index];
-                              Widget puestoWidget;
-
-                              if (player['puesto'] == 1) {
-                                puestoWidget = Image.asset('assets/images/primero.png', width: 30, height: 30);
-                              } else if (player['puesto'] == 2) {
-                                puestoWidget = Image.asset('assets/images/segundo.png', width: 30, height: 30);
-                              } else if (player['puesto'] == 3) {
-                                puestoWidget = Image.asset('assets/images/tercero.png', width: 30, height: 30);
-                              } else if (player['puesto'] == 4) {
-                                puestoWidget = Image.asset('assets/images/cuarto.png', width: 30, height: 30);
-                              } else {
-                                puestoWidget = Text(
-                                  '${player['puesto']}',
-                                  style: const TextStyle(
-                                    color: kText2,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                  ),
-                                );
-                              }
-
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: Center(child: puestoWidget),
-                                    ),
-                                    Expanded(
-                                      flex: 5,
-                                      child: Text(
-                                        player['nombre'],
-                                        style: const TextStyle(
-                                          color: kText1,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Center(
-                                        child: Text(
-                                          '${player['puntaje']}',
-                                          style: const TextStyle(
-                                            color: kText1,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
