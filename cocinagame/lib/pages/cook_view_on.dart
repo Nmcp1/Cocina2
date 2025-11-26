@@ -139,28 +139,28 @@ class _CookViewOnState extends State<CookViewOn> {
     String msg;
     switch (result) {
       case SelectionResult.correct:
-        msg = '¡Correcto! Esta palabra era de la receta.';
+        msg = '¡Correcto! Este ingrediente es de la receta.';
         _correctThisTurn++;
         break;
       case SelectionResult.kOcultas:
-        msg = 'Carta neutra, pierdes el turno.';
+        msg = 'No es un ingrediente, pierdes el turno.';
         break;
       case SelectionResult.wrongColor:
         if (widget.game.lives < 1) {
-          msg = 'No era de la receta. Pierdes la última vida. ¡Se acabó el juego!';
+          msg = 'No era de la receta. Pierdes la última vida. ¡Fuera de la cocina!';
         } else {
           msg = 'No era de la receta. Pierdes una vida.';
         }
         break;
       case SelectionResult.exceededRecipeColor:
         if (widget.game.lives < 1) {
-          msg = 'Te pasaste con ese color. Pierdes la última vida. ¡Se acabó el juego!';
+          msg = 'Te pasaste con ese ingrediente. Pierdes la última vida. ¡Fuera de la cocina!';
         } else {
-          msg = 'Te pasaste con ese color. Pierdes una vida.';
+          msg = 'Te pasaste con ese ingrediente. Pierdes una vida.';
         }
         break;
       case SelectionResult.black:
-        msg = '¡NEGRO! Se acabó el juego.';
+        msg = '¡BOMBA! ¡Fuera de la cocina!';
         break;
       case SelectionResult.alreadySelected:
         msg = 'Esa carta ya estaba seleccionada.';
