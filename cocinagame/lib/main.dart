@@ -15,10 +15,7 @@ import 'package:flutter/services.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-<<<<<<< HEAD
 
-=======
->>>>>>> 0c2dc3cc4193f7a0106dad20527624d508f955cc
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

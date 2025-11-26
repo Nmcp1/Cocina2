@@ -254,7 +254,7 @@ class _CookViewOnState extends State<CookViewOn> {
           // HEADER con botón regresar, texto y puntaje alineado a la derecha
           Container(
             color: kPrimary,
-            padding: const EdgeInsets.only(top: 55, left: 16, right: 16, bottom: 10),
+            padding: const EdgeInsets.only(top: 50, left: 16, right: 16, bottom: 10),
             child: SizedBox(
               height: 60,
               child: Stack(
@@ -391,7 +391,7 @@ class _CookViewOnState extends State<CookViewOn> {
           // Grid de palabras con imágenes reveladas
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
               child: GridView.builder(
                 padding: EdgeInsets.zero,
                 itemCount: round.board.length,

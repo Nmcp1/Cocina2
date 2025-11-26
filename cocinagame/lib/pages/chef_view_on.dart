@@ -38,7 +38,7 @@ class _ChefViewOnState extends State<ChefViewOn> {
           // HEADER
           Container(
             color: kPrimary,
-            padding: const EdgeInsets.only(top: 55, left: 16, right: 16, bottom: 10),
+            padding: const EdgeInsets.only(top: 50, left: 16, right: 16, bottom: 10),
             child: SizedBox(
               height: 60,
               child: Stack(
@@ -199,7 +199,7 @@ class _ChefViewOnState extends State<ChefViewOn> {
           // 🔥 Grid de palabras — AHORA basado en Ingredient.color
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
               child: GridView.builder(
                 padding: EdgeInsets.zero,
                 itemCount: visibleCount,
